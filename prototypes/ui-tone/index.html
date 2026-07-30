@@ -1,0 +1,360 @@
+<!doctype html>
+<!--
+  THROWAWAY PROTOTYPE — Track UI visual-tone exploration. NOT production code.
+  Question it answers: which visual tone for the app? (grilling Q19)
+  Three variants of the primary screen (Category-breakdown dashboard, the default
+  landing) on one route, switched by ?variant=A|B|C and a floating bottom bar (← → / arrow keys).
+    A = dense financial dashboard   B = calm-minimal / consumer   C = utilitarian / neutral
+  Same mock June-2026 data in all three. Chart colors are placeholders — the real
+  accessible palette comes later via the dataviz skill.
+  Run:  cd prototypes/ui-tone && python3 -m http.server 4321   → open http://localhost:4321/?variant=A
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track — UI tone prototype</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { padding-bottom: 72px; }
+  .variant { display: none; }
+  .variant.active { display: block; }
+
+  /* ---------- floating switcher (deliberately NOT part of any design) ---------- */
+  #switcher {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px; z-index: 9999;
+    background: #0b1220; color: #fff; border-radius: 999px; padding: 6px 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.35); font: 13px/1 ui-sans-serif, system-ui, sans-serif;
+  }
+  #switcher button {
+    background: #1e293b; color: #fff; border: 0; border-radius: 999px;
+    width: 30px; height: 30px; cursor: pointer; font-size: 15px;
+  }
+  #switcher button:hover { background: #334155; }
+  #switcher .lbl { padding: 0 12px; white-space: nowrap; font-weight: 600; letter-spacing: .01em; }
+  #switcher .lbl small { opacity: .6; font-weight: 400; }
+</style>
+</head>
+<body>
+
+<!-- ============ VARIANT A — DENSE DASHBOARD (dark, no nav icons, %-of-spend, minimal lines) — CHOSEN ============ -->
+<section class="variant" data-key="A" data-name="Dense · dark (chosen)">
+  <style>
+    .v-dense { font: 13px/1.45 ui-sans-serif, system-ui, "Segoe UI", sans-serif; color: #ffffff; background: #0b1220; min-height: 100vh; display: grid; grid-template-columns: 200px 1fr; }
+    .v-dense .side { padding: 18px 12px; }
+    .v-dense .brand { color: #fff; font-weight: 700; font-size: 15px; letter-spacing: .02em; padding: 4px 10px 20px; }
+    .v-dense .brand span { color: #38bdf8; }
+    /* text-only nav, no icons; minimal lines — active state is a soft fill, not a border */
+    .v-dense .nav a { display: block; padding: 7px 10px; border-radius: 6px; color: #b9c8de; text-decoration: none; font-weight: 500; margin-bottom: 2px; }
+    .v-dense .nav a.on { background: #16223a; color: #fff; }
+    .v-dense .nav a:hover { color: #fff; }
+    .v-dense .main { padding: 18px 22px 44px; overflow: hidden; }
+    .v-dense .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .v-dense h1 { font-size: 16px; margin: 0; font-weight: 700; color: #fff; }
+    .v-dense .period { display: flex; gap: 2px; background: #131d30; padding: 2px; border-radius: 7px; }
+    .v-dense .period button { border: 0; background: transparent; padding: 5px 11px; border-radius: 5px; font: inherit; font-weight: 600; color: #b9c8de; cursor: pointer; }
+    .v-dense .period button.on { background: #24334f; color: #fff; }
+    .v-dense .kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+    /* panels: elevation by fill, no borders */
+    .v-dense .kpi { background: #131d30; border-radius: 10px; padding: 13px 15px; }
+    .v-dense .kpi .k { color: #a9bcd6; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+    .v-dense .kpi .v { font-size: 23px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; color: #fff; }
+    .v-dense .kpi .v.pos { color: #4ade80; }
+    .v-dense .grid2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .v-dense .card { background: #131d30; border-radius: 10px; padding: 14px 16px; }
+    .v-dense .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #a9bcd6; margin: 0 0 12px; font-weight: 700; }
+    .v-dense .cardhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .v-dense .cardhead h2 { margin: 0; }
+    /* category rows: name | bar | amount | %-of-spend (stolen from C) */
+    .v-dense .bhead, .v-dense .bar { display: grid; grid-template-columns: 84px 1fr 78px 46px; align-items: center; gap: 10px; }
+    .v-dense .bhead { color: #93a6c2; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 7px; }
+    .v-dense .bhead span:nth-child(2){ text-align:left } .v-dense .bhead .r { text-align: right; }
+    .v-dense .bar { margin-bottom: 7px; }
+    .v-dense .bar .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .v-dense .bar .track { height: 12px; background: #0e1626; border-radius: 3px; overflow: hidden; }
+    .v-dense .bar .fill { height: 100%; border-radius: 3px; }
+    .v-dense .bar .amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .v-dense .bar .pct { text-align: right; font-variant-numeric: tabular-nums; color: #cdd9ea; }
+    /* transaction-list toolbar: search + filters */
+    .v-dense .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .v-dense .search { background: #0e1626; border: 0; border-radius: 7px; padding: 7px 11px; color: #fff; font: inherit; width: 210px; }
+    .v-dense .search::placeholder { color: #8598b4; }
+    .v-dense .fbtn { background: #1c2942; border: 0; border-radius: 7px; padding: 7px 11px; color: #dce6f4; font: inherit; font-weight: 600; cursor: pointer; }
+    .v-dense .fbtn .cnt { color: #8598b4; font-weight: 500; }
+    .v-dense .fbtn.active { background: #24406b; color: #fff; }
+    .v-dense table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    /* minimal lines: one faint hairline under the header, no per-row borders */
+    .v-dense th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #93a6c2; padding: 4px 8px 8px; border-bottom: 1px solid #1e2a41; }
+    .v-dense th.sortable { cursor: pointer; user-select: none; }
+    .v-dense th.sortable:hover { color: #fff; }
+    .v-dense th .arw { color: #38bdf8; }
+    .v-dense td { padding: 7px 8px; }
+    .v-dense tbody tr:hover td { background: #172137; }
+    .v-dense .desc { font-weight: 600; color: #fff; }
+    .v-dense .tag { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: #1c2942; color: #a7b7d0; font-weight: 600; }
+    .v-dense .tag.xfer { background: #241d3f; color: #b39dff; }
+    .v-dense .tag.unc { background: #33280f; color: #e5b567; }
+    .v-dense .num { text-align: right; font-weight: 600; }
+    .v-dense .num.in { color: #4ade80; } .v-dense .num.rf { color: #56c7f5; } .v-dense .muted td { color: #8298b6; }
+  </style>
+  <div class="v-dense">
+    <aside class="side">
+      <div class="brand">Track<span>.</span></div>
+      <nav class="nav">
+        <a class="on" href="#">Overview</a>
+        <a href="#">Cash flow</a>
+        <a href="#">Trends</a>
+        <a href="#">Transactions</a>
+        <a href="#">Rules</a>
+        <a href="#">Accounts</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <h1>Overview — where did it go?</h1>
+        <div class="period">
+          <button>Month</button><button class="on">June 2026</button><button>Quarter</button><button>Year</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Income</div><div class="v">$6,200.00</div></div>
+        <div class="kpi"><div class="k">Expenses</div><div class="v">$4,138.52</div></div>
+        <div class="kpi"><div class="k">Net cash flow</div><div class="v pos">+$2,061.48</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Spending by category · June</h2>
+          <div class="bhead"><span>Category</span><span>&nbsp;</span><span class="r">Amount</span><span class="r">%</span></div>
+          <div class="bar"><span class="nm">Rent</span><span class="track"><span class="fill" style="width:100%;background:#64748b"></span></span><span class="amt">$1,850.00</span><span class="pct">44.7%</span></div>
+          <div class="bar"><span class="nm">Groceries</span><span class="track"><span class="fill" style="width:33%;background:#38bdf8"></span></span><span class="amt">$612.34</span><span class="pct">14.8%</span></div>
+          <div class="bar"><span class="nm">Restaurants</span><span class="track"><span class="fill" style="width:24%;background:#818cf8"></span></span><span class="amt">$438.90</span><span class="pct">10.6%</span></div>
+          <div class="bar"><span class="nm">Shopping</span><span class="track"><span class="fill" style="width:18%;background:#fbbf24"></span></span><span class="amt">$342.10</span><span class="pct">8.3%</span></div>
+          <div class="bar"><span class="nm">Transport</span><span class="track"><span class="fill" style="width:12%;background:#34d399"></span></span><span class="amt">$214.20</span><span class="pct">5.2%</span></div>
+          <div class="bar"><span class="nm">Uncategorized</span><span class="track"><span class="fill" style="width:11%;background:#475569"></span></span><span class="amt">$206.00</span><span class="pct">5.0%</span></div>
+          <div class="bar"><span class="nm">Utilities</span><span class="track"><span class="fill" style="width:10%;background:#f472b6"></span></span><span class="amt">$186.75</span><span class="pct">4.5%</span></div>
+        </div>
+        <div class="card">
+          <h2>Net flow · last 6 months</h2>
+          <div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding:6px 2px 0">
+            <div style="flex:1;text-align:center"><div style="height:64px;background:#334769;border-radius:3px"></div><small style="color:#93a6c2">Jan</small></div>
+            <div style="flex:1;text-align:center"><div style="height:88px;background:#3f5680;border-radius:3px"></div><small style="color:#93a6c2">Feb</small></div>
+            <div style="flex:1;text-align:center"><div style="height:52px;background:#334769;border-radius:3px"></div><small style="color:#93a6c2">Mar</small></div>
+            <div style="flex:1;text-align:center"><div style="height:104px;background:#4f6ba5;border-radius:3px"></div><small style="color:#93a6c2">Apr</small></div>
+            <div style="flex:1;text-align:center"><div style="height:72px;background:#3f5680;border-radius:3px"></div><small style="color:#93a6c2">May</small></div>
+            <div style="flex:1;text-align:center"><div style="height:120px;background:#38bdf8;border-radius:3px"></div><small style="color:#e6edf6;font-weight:700">Jun</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="cardhead">
+          <h2>Transactions · June</h2>
+          <div class="toolbar">
+            <input class="search" type="text" placeholder="Search description or note…">
+            <button class="fbtn">Account <span class="cnt">· All</span></button>
+            <button class="fbtn">Category <span class="cnt">· All</span></button>
+            <button class="fbtn">Direction <span class="cnt">· All</span></button>
+            <button class="fbtn active">Uncategorized only</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th class="sortable">Date <span class="arw">▼</span></th><th class="sortable">Description</th><th class="sortable">Category</th><th class="sortable">Account</th><th class="sortable" style="text-align:right">Amount</th></tr></thead>
+          <tbody>
+            <tr><td>06/28</td><td class="desc">WHOLEFDS #123</td><td><span class="tag">Groceries</span></td><td>Chase ••4021</td><td class="num">−84.21</td></tr>
+            <tr class="muted"><td>06/27</td><td class="desc">Transfer to Savings</td><td><span class="tag xfer">Transfer</span></td><td>Chase ••4021</td><td class="num">−500.00</td></tr>
+            <tr><td>06/26</td><td class="desc">SHELL OIL 4432</td><td><span class="tag">Transport</span></td><td>Amex ••1007</td><td class="num">−52.10</td></tr>
+            <tr><td>06/24</td><td class="desc">BLUE BOTTLE COFFEE</td><td><span class="tag">Restaurants</span></td><td>Amex ••1007</td><td class="num">−6.75</td></tr>
+            <tr><td>06/22</td><td class="desc">ACME CORP PAYROLL</td><td><span class="tag">Salary</span></td><td>Chase ••4021</td><td class="num in">+3,100.00</td></tr>
+            <tr><td>06/20</td><td class="desc">UNITED AIRLINES REFUND</td><td><span class="tag">Travel</span></td><td>Amex ••1007</td><td class="num rf">+212.00</td></tr>
+            <tr><td>06/19</td><td class="desc">PG&amp;E UTILITY</td><td><span class="tag">Utilities</span></td><td>Chase ••4021</td><td class="num">−186.75</td></tr>
+            <tr><td>06/17</td><td class="desc">SQ *UNKNOWN VENDOR</td><td><span class="tag unc">Uncategorized</span></td><td>Amex ••1007</td><td class="num">−42.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============================ VARIANT B — CALM MINIMAL ============================ -->
+<section class="variant" data-key="B" data-name="Calm minimal">
+  <style>
+    .v-calm { font: 15px/1.6 ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #2b2b3a; background: #faf7f2; min-height: 100vh; }
+    .v-calm .top { display: flex; justify-content: center; gap: 28px; padding: 22px; background: transparent; }
+    .v-calm .top a { text-decoration: none; color: #9a94a6; font-weight: 600; }
+    .v-calm .top a.on { color: #6d5bd0; }
+    .v-calm .wrap { max-width: 680px; margin: 0 auto; padding: 8px 24px 60px; }
+    .v-calm .hero { text-align: center; padding: 24px 0 32px; }
+    .v-calm .hero .lbl { color: #9a94a6; font-weight: 600; letter-spacing: .02em; }
+    .v-calm .hero .big { font-size: 56px; font-weight: 800; color: #3a9d6e; margin: 6px 0 2px; letter-spacing: -.02em; }
+    .v-calm .hero .sub { color: #9a94a6; }
+    .v-calm .hero .sub b { color: #2b2b3a; }
+    .v-calm .card { background: #fff; border-radius: 22px; padding: 26px 28px; margin-bottom: 18px; box-shadow: 0 2px 20px rgba(80,60,120,.06); }
+    .v-calm .card h2 { font-size: 17px; margin: 0 0 20px; font-weight: 700; }
+    .v-calm .donutRow { display: flex; align-items: center; gap: 28px; }
+    .v-calm .donut { width: 150px; height: 150px; border-radius: 50%; flex: none;
+      background: conic-gradient(#7c6ce0 0 45%, #f4a6b8 45% 60%, #ffcf8f 60% 71%, #8fd3c0 71% 82%, #a9c7f0 82% 87%, #e8e2f0 87% 100%); position: relative; }
+    .v-calm .donut::after { content:""; position:absolute; inset:26px; background:#fff; border-radius:50%; }
+    .v-calm .legend { flex: 1; }
+    .v-calm .leg { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .v-calm .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+    .v-calm .leg .nm { flex: 1; font-weight: 600; }
+    .v-calm .leg .amt { color: #6b6577; font-weight: 600; }
+    .v-calm .list .row { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid #f1ecf5; }
+    .v-calm .list .row:last-child { border-bottom: 0; }
+    .v-calm .emoji { width: 40px; height: 40px; border-radius: 50%; background: #f4f0fa; display: grid; place-items: center; font-size: 18px; flex: none; }
+    .v-calm .row .d { flex: 1; }
+    .v-calm .row .d b { display: block; font-weight: 700; }
+    .v-calm .row .d small { color: #9a94a6; }
+    .v-calm .row .a { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .v-calm .row .a.in { color: #3a9d6e; } .v-calm .row .a.xf { color: #9a94a6; font-weight: 600; }
+    .v-calm .pill { align-self:center; display:inline-block; margin-top:16px; background:#f4f0fa; color:#6d5bd0; border-radius:999px; padding:6px 16px; font-weight:600; font-size:13px; }
+  </style>
+  <div class="v-calm">
+    <nav class="top"><a class="on" href="#">Overview</a><a href="#">Cash flow</a><a href="#">Trends</a><a href="#">Transactions</a></nav>
+    <div class="wrap">
+      <div class="hero">
+        <div class="lbl">Net cash flow · June 2026</div>
+        <div class="big">+$2,061</div>
+        <div class="sub"><b>$6,200</b> in · <b>$4,139</b> out</div>
+      </div>
+      <div class="card">
+        <h2>Where it went</h2>
+        <div class="donutRow">
+          <div class="donut"></div>
+          <div class="legend">
+            <div class="leg"><span class="dot" style="background:#7c6ce0"></span><span class="nm">Rent</span><span class="amt">$1,850</span></div>
+            <div class="leg"><span class="dot" style="background:#f4a6b8"></span><span class="nm">Groceries</span><span class="amt">$612</span></div>
+            <div class="leg"><span class="dot" style="background:#ffcf8f"></span><span class="nm">Restaurants</span><span class="amt">$439</span></div>
+            <div class="leg"><span class="dot" style="background:#8fd3c0"></span><span class="nm">Shopping</span><span class="amt">$342</span></div>
+            <div class="leg"><span class="dot" style="background:#a9c7f0"></span><span class="nm">Transport</span><span class="amt">$214</span></div>
+            <div class="leg"><span class="dot" style="background:#e8e2f0"></span><span class="nm">Everything else</span><span class="amt">$681</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card list">
+        <h2>Recent activity</h2>
+        <div class="row"><div class="emoji">🛒</div><div class="d"><b>Whole Foods</b><small>Groceries · Jun 28</small></div><div class="a">−$84.21</div></div>
+        <div class="row"><div class="emoji">🔁</div><div class="d"><b>Transfer to Savings</b><small>Transfer · Jun 27</small></div><div class="a xf">−$500.00</div></div>
+        <div class="row"><div class="emoji">⛽</div><div class="d"><b>Shell</b><small>Transport · Jun 26</small></div><div class="a">−$52.10</div></div>
+        <div class="row"><div class="emoji">💼</div><div class="d"><b>Acme Corp Payroll</b><small>Salary · Jun 22</small></div><div class="a in">+$3,100.00</div></div>
+        <div class="row"><div class="emoji">✈️</div><div class="d"><b>United Airlines refund</b><small>Travel · Jun 20</small></div><div class="a in">+$212.00</div></div>
+        <div class="row"><div class="emoji">❓</div><div class="d"><b>SQ *Unknown Vendor</b><small>Uncategorized · Jun 17</small></div><div class="a">−$42.00</div></div>
+        <div style="text-align:center"><span class="pill">Review 3 uncategorized →</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ VARIANT C — UTILITARIAN ============================ -->
+<section class="variant" data-key="C" data-name="Utilitarian">
+  <style>
+    .v-util { font: 13px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; color: #111; background: #fff; min-height: 100vh; }
+    .v-util .bar { border-bottom: 1px solid #999; padding: 6px 12px; display: flex; align-items: baseline; gap: 16px; background: #f5f5f5; }
+    .v-util .bar b { font-size: 14px; }
+    .v-util .bar a { color: #0645ad; text-decoration: none; }
+    .v-util .bar a.on { font-weight: 700; color: #111; text-decoration: none; }
+    .v-util .wrap { padding: 12px; max-width: 940px; }
+    .v-util .controls { margin-bottom: 12px; }
+    .v-util select, .v-util button { font: inherit; padding: 2px 6px; }
+    .v-util .summary { margin: 10px 0 16px; }
+    .v-util .summary table { border-collapse: collapse; }
+    .v-util .summary td { padding: 2px 18px 2px 0; }
+    .v-util .summary .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .v-util h3 { font-size: 13px; margin: 16px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+    .v-util table.data { border-collapse: collapse; width: 100%; }
+    .v-util table.data th, .v-util table.data td { border: 1px solid #ccc; padding: 3px 7px; text-align: left; }
+    .v-util table.data th { background: #eee; font-weight: 700; }
+    .v-util table.data td.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .v-util a.link { color: #0645ad; }
+  </style>
+  <div class="v-util">
+    <div class="bar"><b>Track</b>
+      <a class="on" href="#">Overview</a><a href="#">Cash flow</a><a href="#">Trends</a><a href="#">Transactions</a><a href="#">Rules</a><a href="#">Accounts</a>
+    </div>
+    <div class="wrap">
+      <div class="controls">
+        Period:
+        <select><option>June 2026</option><option>May 2026</option><option>Q2 2026</option><option>2026</option></select>
+        <button>Apply</button>
+      </div>
+      <div class="summary">
+        <table>
+          <tr><td>Income:</td><td class="n">$6,200.00</td><td>Expenses:</td><td class="n">$4,138.52</td><td>Net:</td><td class="n">+$2,061.48</td></tr>
+        </table>
+      </div>
+
+      <h3>Spending by category — June 2026</h3>
+      <table class="data">
+        <thead><tr><th>Category</th><th style="text-align:right">Amount</th><th style="text-align:right">% of spend</th></tr></thead>
+        <tbody>
+          <tr><td>Rent</td><td class="n">1,850.00</td><td class="n">44.7%</td></tr>
+          <tr><td>Groceries</td><td class="n">612.34</td><td class="n">14.8%</td></tr>
+          <tr><td>Restaurants</td><td class="n">438.90</td><td class="n">10.6%</td></tr>
+          <tr><td>Shopping</td><td class="n">342.10</td><td class="n">8.3%</td></tr>
+          <tr><td>Transport</td><td class="n">214.20</td><td class="n">5.2%</td></tr>
+          <tr><td>Uncategorized</td><td class="n">206.00</td><td class="n">5.0%</td></tr>
+          <tr><td>Utilities</td><td class="n">186.75</td><td class="n">4.5%</td></tr>
+          <tr><td><i>Other (4)</i></td><td class="n">288.23</td><td class="n">6.9%</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Transactions — June 2026</h3>
+      <table class="data">
+        <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Direction</th><th>Account</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>2026-06-28</td><td>WHOLEFDS #123</td><td>Groceries</td><td>Expense</td><td>Chase 4021</td><td class="n">-84.21</td></tr>
+          <tr><td>2026-06-27</td><td>Transfer to Savings</td><td>—</td><td>Transfer</td><td>Chase 4021</td><td class="n">-500.00</td></tr>
+          <tr><td>2026-06-26</td><td>SHELL OIL 4432</td><td>Transport</td><td>Expense</td><td>Amex 1007</td><td class="n">-52.10</td></tr>
+          <tr><td>2026-06-22</td><td>ACME CORP PAYROLL</td><td>Salary</td><td>Income</td><td>Chase 4021</td><td class="n">+3,100.00</td></tr>
+          <tr><td>2026-06-20</td><td>UNITED AIRLINES REFUND</td><td>Travel</td><td>Expense</td><td>Amex 1007</td><td class="n">+212.00</td></tr>
+          <tr><td>2026-06-19</td><td>PG&amp;E UTILITY</td><td>Utilities</td><td>Expense</td><td>Chase 4021</td><td class="n">-186.75</td></tr>
+          <tr><td>2026-06-17</td><td>SQ *UNKNOWN VENDOR</td><td><a class="link" href="#">[assign]</a></td><td>Expense</td><td>Amex 1007</td><td class="n">-42.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ switcher ============================ -->
+<div id="switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="lbl" id="lbl"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+  const KEYS = ['A','B','C'];
+  function current() {
+    const p = new URLSearchParams(location.search).get('variant');
+    return KEYS.includes(p) ? p : 'A';
+  }
+  function render() {
+    const key = current();
+    let name = '';
+    document.querySelectorAll('.variant').forEach(v => {
+      const on = v.dataset.key === key;
+      v.classList.toggle('active', on);
+      if (on) name = v.dataset.name;
+    });
+    document.getElementById('lbl').innerHTML = key + ' — <small>' + name + '</small>';
+    document.title = 'Track tone ' + key + ' — ' + name;
+  }
+  function go(dir) {
+    const i = KEYS.indexOf(current());
+    const next = KEYS[(i + dir + KEYS.length) % KEYS.length];
+    const u = new URL(location); u.searchParams.set('variant', next);
+    history.replaceState(null, '', u); render();
+  }
+  document.getElementById('prev').onclick = () => go(-1);
+  document.getElementById('next').onclick = () => go(1);
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowLeft') go(-1);
+    if (e.key === 'ArrowRight') go(1);
+  });
+  render();
+</script>
+</body>
+</html>
