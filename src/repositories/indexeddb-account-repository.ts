@@ -1,22 +1,10 @@
 import type { Account, NewAccount } from '../domain/account.ts'
 import type { AccountRepository } from './account-repository.ts'
+import { openDatabase, STORE_NAMES } from './database.ts'
+import { requestToPromise, transactionToPromise } from './indexeddb-utils.ts'
 
-const STORE_NAME = 'accounts'
+const STORE_NAME = STORE_NAMES.accounts
 const ID_INDEX = 'id'
-
-function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
-  })
-}
-
-function transactionToPromise(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve()
-    transaction.onerror = () => reject(transaction.error)
-  })
-}
 
 // Records are keyed by an internal auto-incrementing key (never exposed on
 // Account) so getAll() returns them in creation order, matching the
@@ -29,14 +17,7 @@ export class IndexedDBAccountRepository implements AccountRepository {
   }
 
   static async open(databaseName: string): Promise<IndexedDBAccountRepository> {
-    const request = indexedDB.open(databaseName, 1)
-    request.onupgradeneeded = () => {
-      const store = request.result.createObjectStore(STORE_NAME, {
-        autoIncrement: true,
-      })
-      store.createIndex(ID_INDEX, 'id', { unique: true })
-    }
-    const db = await requestToPromise(request)
+    const db = await openDatabase(databaseName)
     return new IndexedDBAccountRepository(db)
   }
 
