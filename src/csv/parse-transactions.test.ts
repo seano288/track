@@ -43,7 +43,7 @@ describe('parseTransactionRows', () => {
     dateFormat: 'MM/DD/YYYY',
   }
 
-  it('maps rows into new transactions, defaulting direction by sign and category to Uncategorized', () => {
+  it('maps rows into new transactions, defaulting direction by sign and categoryId to Uncategorized', () => {
     const rows = [
       { Date: '1/2/2024', Amount: '-12.34', Description: 'Coffee shop' },
       { Date: '1/3/2024', Amount: '500.00', Description: 'Paycheck' },
@@ -56,7 +56,7 @@ describe('parseTransactionRows', () => {
         amount: -1234,
         description: 'Coffee shop',
         direction: 'expense',
-        category: 'Uncategorized',
+        categoryId: 'Uncategorized',
       },
       {
         accountId: 'account-1',
@@ -64,7 +64,7 @@ describe('parseTransactionRows', () => {
         amount: 50000,
         description: 'Paycheck',
         direction: 'income',
-        category: 'Uncategorized',
+        categoryId: 'Uncategorized',
       },
     ])
   })

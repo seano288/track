@@ -1,7 +1,11 @@
-import { For, createResource, createSignal } from 'solid-js'
+import { For, createResource, createSignal, onMount } from 'solid-js'
+import { Categories } from './Categories.tsx'
+import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
+import { seedStarterCategories } from './categories/seed-starter-categories.ts'
 import { ImportCsv } from './ImportCsv.tsx'
 import { TransactionList } from './TransactionList.tsx'
 import { accountRepository } from './repositories/production-account-repository.ts'
+import { categoryRepository } from './repositories/production-category-repository.ts'
 import { transactionRepository } from './repositories/production-transaction-repository.ts'
 
 function App() {
@@ -13,7 +17,40 @@ function App() {
     const repository = await transactionRepository
     return repository.list()
   })
+  const [categories, { refetch: refetchCategories }] = createResource(async () => {
+    const repository = await categoryRepository
+    return repository.list()
+  })
   const [name, setName] = createSignal('')
+
+  onMount(async () => {
+    const repository = await categoryRepository
+    await seedStarterCategories(repository)
+    refetchCategories()
+  })
+
+  async function handleCreateCategory(categoryName: string) {
+    const repository = await categoryRepository
+    await repository.create({ name: categoryName })
+    refetchCategories()
+  }
+
+  async function handleRenameCategory(id: string, categoryName: string) {
+    const repository = await categoryRepository
+    await repository.rename(id, categoryName)
+    refetchCategories()
+  }
+
+  async function handleDeleteCategory(id: string) {
+    const categoriesRepository = await categoryRepository
+    const transactionsRepository = await transactionRepository
+    await deleteCategoryAndReassign(id, transactions() ?? [], {
+      categories: categoriesRepository,
+      transactions: transactionsRepository,
+    })
+    refetchCategories()
+    refetchTransactions()
+  }
 
   async function handleCreate(event: SubmitEvent) {
     event.preventDefault()
@@ -58,8 +95,15 @@ function App() {
           </For>
         </ul>
       </section>
+      <Categories
+        categories={categories() ?? []}
+        transactions={transactions() ?? []}
+        onCreate={handleCreateCategory}
+        onRename={handleRenameCategory}
+        onDelete={handleDeleteCategory}
+      />
       <ImportCsv accounts={accounts() ?? []} onImported={refetchTransactions} />
-      <TransactionList transactions={transactions() ?? []} accounts={accounts() ?? []} />
+      <TransactionList transactions={transactions() ?? []} accounts={accounts() ?? []} categories={categories() ?? []} />
     </>
   )
 }

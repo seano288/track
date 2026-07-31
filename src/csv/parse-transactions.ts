@@ -52,7 +52,7 @@ export function parseTransactionRows(rows: Record<string, string>[], mapping: Co
       amount,
       description: (row[mapping.descriptionColumn] ?? '').trim(),
       direction,
-      category: UNCATEGORIZED,
+      categoryId: UNCATEGORIZED,
       bankTransactionId: mapping.idColumn ? (row[mapping.idColumn] ?? '').trim() : undefined,
     }
   })

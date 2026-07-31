@@ -13,4 +13,10 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     this.#transactions.push(...created)
     return created
   }
+
+  async updateCategory(id: string, categoryId: string): Promise<Transaction> {
+    const transaction = this.#transactions.find((transaction) => transaction.id === id)!
+    transaction.categoryId = categoryId
+    return { ...transaction }
+  }
 }

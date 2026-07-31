@@ -11,7 +11,7 @@ function newTransaction(overrides: Partial<NewTransaction> = {}): NewTransaction
     amount: -1234,
     description: 'Coffee shop',
     direction: 'expense',
-    category: 'Uncategorized',
+    categoryId: 'Uncategorized',
     ...overrides,
   }
 }

@@ -4,6 +4,7 @@ import { openDatabase, STORE_NAMES } from './database.ts'
 import { requestToPromise, transactionToPromise } from './indexeddb-utils.ts'
 
 const STORE_NAME = STORE_NAMES.transactions
+const ID_INDEX = 'id'
 
 // Records are keyed by an internal auto-incrementing key (never exposed on
 // Transaction) so getAll() returns them in creation order, matching the
@@ -32,5 +33,16 @@ export class IndexedDBTransactionRepository implements TransactionRepository {
     for (const transaction of created) store.add(transaction)
     await transactionToPromise(dbTransaction)
     return created
+  }
+
+  async updateCategory(id: string, categoryId: string): Promise<Transaction> {
+    const dbTransaction = this.#db.transaction(STORE_NAME, 'readwrite')
+    const store = dbTransaction.objectStore(STORE_NAME)
+    const key = (await requestToPromise(store.index(ID_INDEX).getKey(id))) as IDBValidKey
+    const existing = (await requestToPromise(store.get(key))) as Transaction
+    const updated: Transaction = { ...existing, categoryId }
+    store.put(updated, key)
+    await transactionToPromise(dbTransaction)
+    return updated
   }
 }

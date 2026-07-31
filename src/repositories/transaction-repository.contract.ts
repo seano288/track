@@ -11,7 +11,7 @@ function newTransaction(overrides: Partial<NewTransaction> = {}): NewTransaction
     amount: -1234,
     description: 'Coffee shop',
     direction: 'expense' as const,
-    category: 'Uncategorized',
+    categoryId: 'Uncategorized',
     ...overrides,
   }
 }
@@ -49,6 +49,29 @@ export function runTransactionRepositoryContract(
       const listed = await repository.list()
 
       expect(listed.map((transaction) => transaction.description)).toEqual(['First', 'Second'])
+    })
+
+    it('updateCategory changes the categoryId, visible via list, and returns the updated transaction', async () => {
+      const repository = await createRepository()
+      const [created] = await repository.createMany([newTransaction()])
+
+      const updated = await repository.updateCategory(created.id, 'category-groceries')
+
+      expect(updated).toEqual({ ...created, categoryId: 'category-groceries' })
+      expect(await repository.list()).toEqual([updated])
+    })
+
+    it('updateCategory only changes the targeted transaction', async () => {
+      const repository = await createRepository()
+      const [first, second] = await repository.createMany([
+        newTransaction({ description: 'First' }),
+        newTransaction({ description: 'Second' }),
+      ])
+
+      await repository.updateCategory(first.id, 'category-groceries')
+
+      const listed = await repository.list()
+      expect(listed.find((transaction) => transaction.id === second.id)).toEqual(second)
     })
   })
 }

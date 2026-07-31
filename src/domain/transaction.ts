@@ -1,5 +1,7 @@
 export type Direction = 'income' | 'expense'
 
+// Not a Category record — a fixed sentinel categoryId for "no category
+// assigned yet", so it survives Category renames/deletes untouched.
 export const UNCATEGORIZED = 'Uncategorized'
 
 export interface Transaction {
@@ -9,7 +11,7 @@ export interface Transaction {
   amount: number
   description: string
   direction: Direction
-  category: string
+  categoryId: string
   bankTransactionId?: string
 }
 
@@ -19,6 +21,6 @@ export interface NewTransaction {
   amount: number
   description: string
   direction: Direction
-  category: string
+  categoryId: string
   bankTransactionId?: string
 }
