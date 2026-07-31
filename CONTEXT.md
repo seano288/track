@@ -40,6 +40,11 @@ A saved pattern matched against a transaction's description that assigns a categ
 automatically on import — e.g. description contains "WHOLEFDS" → Groceries.
 _Avoid_: Filter, matcher
 
+**Period**:
+The date range (month, quarter, year, or a custom range) that scopes the Category
+breakdown and cash-flow summary. Both endpoints are inclusive.
+_Avoid_: Range, timeframe, window
+
 **Uncategorized**:
 The state of a transaction no rule matched and the user has not yet categorized by
 hand. A review screen exists to clear these.

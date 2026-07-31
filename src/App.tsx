@@ -1,10 +1,15 @@
-import { For, Show, createResource, createSignal, onMount } from 'solid-js'
+import { For, Show, createMemo, createResource, createSignal, onMount } from 'solid-js'
 import { AddTransaction } from './AddTransaction.tsx'
 import { Categories } from './Categories.tsx'
 import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
+import { CashFlowSummary } from './CashFlowSummary.tsx'
+import { CategoryBreakdown } from './CategoryBreakdown.tsx'
+import { summarizePeriod } from './breakdown/summarize-period.ts'
+import { defaultPeriod } from './domain/period.ts'
 import type { NewManualTransaction, TransactionEdits } from './domain/transaction.ts'
 import { ImportCsv } from './ImportCsv.tsx'
+import { PeriodPicker } from './PeriodPicker.tsx'
 import { Rules } from './Rules.tsx'
 import { RulePromptHint } from './RulePromptHint.tsx'
 import { TransactionList } from './TransactionList.tsx'
@@ -35,6 +40,8 @@ function App() {
   })
   const [name, setName] = createSignal('')
   const [ruleHint, setRuleHint] = createSignal<{ description: string; categoryId: string } | null>(null)
+  const [period, setPeriod] = createSignal(defaultPeriod())
+  const summary = createMemo(() => summarizePeriod(transactions() ?? [], categories() ?? [], period()))
 
   onMount(async () => {
     const repository = await categoryRepository
@@ -134,6 +141,9 @@ function App() {
 
   return (
     <>
+      <PeriodPicker period={period()} onChange={setPeriod} />
+      <CategoryBreakdown breakdown={summary().breakdown} />
+      <CashFlowSummary cashFlow={summary().cashFlow} />
       <section>
         <h1>Accounts</h1>
         <form onSubmit={handleCreate}>
