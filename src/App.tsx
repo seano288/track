@@ -1,9 +1,10 @@
-import { For, createResource, createSignal, onMount } from 'solid-js'
+import { For, Show, createResource, createSignal, onMount } from 'solid-js'
 import { Categories } from './Categories.tsx'
 import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
 import { ImportCsv } from './ImportCsv.tsx'
 import { Rules } from './Rules.tsx'
+import { RulePromptHint } from './RulePromptHint.tsx'
 import { TransactionList } from './TransactionList.tsx'
 import { UncategorizedReview } from './UncategorizedReview.tsx'
 import { accountRepository } from './repositories/production-account-repository.ts'
@@ -29,6 +30,7 @@ function App() {
     return repository.list()
   })
   const [name, setName] = createSignal('')
+  const [ruleHint, setRuleHint] = createSignal<{ description: string; categoryId: string } | null>(null)
 
   onMount(async () => {
     const repository = await categoryRepository
@@ -76,8 +78,22 @@ function App() {
 
   async function handleCategorizeTransaction(transactionId: string, categoryId: string) {
     const repository = await transactionRepository
+    const transaction = transactions()?.find((candidate) => candidate.id === transactionId)
     await repository.updateCategory(transactionId, categoryId)
     refetchTransactions()
+    if (transaction) setRuleHint({ description: transaction.description, categoryId })
+  }
+
+  async function handleAcceptRuleHint() {
+    const hint = ruleHint()
+    if (!hint) return
+
+    await handleCreateRule(hint.description, hint.categoryId)
+    setRuleHint(null)
+  }
+
+  function handleDismissRuleHint() {
+    setRuleHint(null)
   }
 
   async function handleCreate(event: SubmitEvent) {
@@ -138,6 +154,17 @@ function App() {
         onDelete={handleDeleteRule}
       />
       <ImportCsv accounts={accounts() ?? []} onImported={refetchTransactions} />
+      <Show when={ruleHint()}>
+        {(hint) => (
+          <RulePromptHint
+            description={hint().description}
+            categoryId={hint().categoryId}
+            categories={categories() ?? []}
+            onAccept={handleAcceptRuleHint}
+            onDismiss={handleDismissRuleHint}
+          />
+        )}
+      </Show>
       <UncategorizedReview
         transactions={transactions() ?? []}
         categories={categories() ?? []}
