@@ -2,8 +2,8 @@ import { For, Show, createSignal } from 'solid-js'
 import type { Account } from './domain/account.ts'
 import type { Category } from './domain/category.ts'
 import type { Direction, Transaction, TransactionEdits } from './domain/transaction.ts'
-
-const DIRECTIONS: Direction[] = ['income', 'expense', 'transfer']
+import { DIRECTIONS, isManualTransaction } from './domain/transaction.ts'
+import { parseAmountInput } from './transactions/parse-amount-input.ts'
 
 export function TransactionList(props: {
   transactions: Transaction[]
@@ -12,6 +12,9 @@ export function TransactionList(props: {
   onEdit: (transactionId: string, edits: TransactionEdits) => void | Promise<void>
 }) {
   const [editingId, setEditingId] = createSignal<string | undefined>(undefined)
+  const [date, setDate] = createSignal('')
+  const [amount, setAmount] = createSignal('')
+  const [description, setDescription] = createSignal('')
   const [categoryId, setCategoryId] = createSignal('')
   const [direction, setDirection] = createSignal<Direction>('expense')
   const [note, setNote] = createSignal('')
@@ -30,6 +33,9 @@ export function TransactionList(props: {
 
   function startEdit(transaction: Transaction) {
     setEditingId(transaction.id)
+    setDate(transaction.date)
+    setAmount(formatAmount(transaction.amount))
+    setDescription(transaction.description)
     setCategoryId(transaction.categoryId)
     setDirection(transaction.direction)
     setNote(transaction.note ?? '')
@@ -37,11 +43,20 @@ export function TransactionList(props: {
 
   async function confirmEdit(event: SubmitEvent, transaction: Transaction) {
     event.preventDefault()
-    await props.onEdit(transaction.id, {
+    const edits: TransactionEdits = {
       categoryId: categoryId(),
       direction: direction(),
       note: note().trim() || undefined,
-    })
+    }
+    if (isManualTransaction(transaction)) {
+      const parsedAmount = parseAmountInput(amount())
+      const trimmedDescription = description().trim()
+      if (!date() || parsedAmount === undefined || !trimmedDescription) return
+      edits.date = date()
+      edits.amount = parsedAmount
+      edits.description = trimmedDescription
+    }
+    await props.onEdit(transaction.id, edits)
     setEditingId(undefined)
   }
 
@@ -67,8 +82,36 @@ export function TransactionList(props: {
                 }
               >
                 <form onSubmit={(event) => confirmEdit(event, transaction)}>
-                  {transaction.date} — {accountName(transaction.accountId)} — {transaction.description} —{' '}
-                  {formatAmount(transaction.amount)}
+                  <Show
+                    when={isManualTransaction(transaction)}
+                    fallback={
+                      <>
+                        {transaction.date} — {accountName(transaction.accountId)} — {transaction.description} —{' '}
+                        {formatAmount(transaction.amount)}
+                      </>
+                    }
+                  >
+                    <input
+                      type="date"
+                      value={date()}
+                      aria-label={`Date for ${transaction.description}`}
+                      onInput={(event) => setDate(event.currentTarget.value)}
+                    />
+                    {' — '}
+                    {accountName(transaction.accountId)}
+                    {' — '}
+                    <input
+                      value={description()}
+                      aria-label={`Description for ${transaction.description}`}
+                      onInput={(event) => setDescription(event.currentTarget.value)}
+                    />
+                    {' — '}
+                    <input
+                      value={amount()}
+                      aria-label={`Amount for ${transaction.description}`}
+                      onInput={(event) => setAmount(event.currentTarget.value)}
+                    />
+                  </Show>
                   <select
                     value={direction()}
                     aria-label={`Direction for ${transaction.description}`}

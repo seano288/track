@@ -1,8 +1,9 @@
 import { For, Show, createResource, createSignal, onMount } from 'solid-js'
+import { AddTransaction } from './AddTransaction.tsx'
 import { Categories } from './Categories.tsx'
 import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
-import type { TransactionEdits } from './domain/transaction.ts'
+import type { NewManualTransaction, TransactionEdits } from './domain/transaction.ts'
 import { ImportCsv } from './ImportCsv.tsx'
 import { Rules } from './Rules.tsx'
 import { RulePromptHint } from './RulePromptHint.tsx'
@@ -12,6 +13,8 @@ import { accountRepository } from './repositories/production-account-repository.
 import { categoryRepository } from './repositories/production-category-repository.ts'
 import { ruleRepository } from './repositories/production-rule-repository.ts'
 import { transactionRepository } from './repositories/production-transaction-repository.ts'
+import { buildManualTransaction } from './transactions/add-manual-transaction.ts'
+import { validateTransactionEdits } from './transactions/edit-transaction.ts'
 
 function App() {
   const [accounts, { refetch: refetchAccounts }] = createResource(async () => {
@@ -86,8 +89,17 @@ function App() {
   }
 
   async function handleEditTransaction(transactionId: string, edits: TransactionEdits) {
+    const transaction = transactions()?.find((candidate) => candidate.id === transactionId)
+    if (!transaction) return
+
     const repository = await transactionRepository
-    await repository.update(transactionId, edits)
+    await repository.update(transactionId, validateTransactionEdits(transaction, edits))
+    refetchTransactions()
+  }
+
+  async function handleAddTransaction(input: NewManualTransaction) {
+    const repository = await transactionRepository
+    await repository.createMany([buildManualTransaction(input)])
     refetchTransactions()
   }
 
@@ -177,6 +189,7 @@ function App() {
         categories={categories() ?? []}
         onCategorize={handleCategorizeTransaction}
       />
+      <AddTransaction categories={categories() ?? []} onAdd={handleAddTransaction} />
       <TransactionList
         transactions={transactions() ?? []}
         accounts={accounts() ?? []}

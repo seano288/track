@@ -71,6 +71,20 @@ export function runTransactionRepositoryContract(
       expect((await repository.list())[0].direction).toBe('transfer')
     })
 
+    it('update changes date, amount, and description (for manual transactions)', async () => {
+      const repository = await createRepository()
+      const [created] = await repository.createMany([newTransaction()])
+
+      const updated = await repository.update(created.id, {
+        date: '2024-03-15',
+        amount: -500,
+        description: 'Corrected description',
+      })
+
+      expect(updated).toEqual({ ...created, date: '2024-03-15', amount: -500, description: 'Corrected description' })
+      expect(await repository.list()).toEqual([updated])
+    })
+
     it('update sets the note', async () => {
       const repository = await createRepository()
       const [created] = await repository.createMany([newTransaction()])
