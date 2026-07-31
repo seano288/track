@@ -1,5 +1,5 @@
-import type { ColumnMapping, DateFormat } from '../domain/column-mapping.ts'
-import type { NewTransaction } from '../domain/transaction.ts'
+import type { AmountMapping, ColumnMapping, DateFormat } from '../domain/column-mapping.ts'
+import type { Direction, NewTransaction } from '../domain/transaction.ts'
 import { UNCATEGORIZED } from '../domain/transaction.ts'
 
 export function parseDate(value: string, format: DateFormat): string {
@@ -27,17 +27,31 @@ export function parseAmountToMinorUnits(value: string): number {
   return isParenthesizedNegative ? -Math.abs(minorUnits) : minorUnits
 }
 
+function readAmount(row: Record<string, string>, amount: AmountMapping): { amount: number; direction: Direction } {
+  if (amount.shape === 'single') {
+    const value = parseAmountToMinorUnits(row[amount.amountColumn] ?? '')
+    // Bank CSVs don't export $0.00 rows in practice; treat zero as income
+    // rather than leave the sign check ambiguous.
+    return { amount: value, direction: value < 0 ? 'expense' : 'income' }
+  }
+
+  const debit = (row[amount.debitColumn] ?? '').trim()
+  if (debit) {
+    return { amount: -Math.abs(parseAmountToMinorUnits(debit)), direction: 'expense' }
+  }
+  const credit = (row[amount.creditColumn] ?? '').trim()
+  return { amount: Math.abs(parseAmountToMinorUnits(credit)), direction: 'income' }
+}
+
 export function parseTransactionRows(rows: Record<string, string>[], mapping: ColumnMapping): NewTransaction[] {
   return rows.map((row) => {
-    const amount = parseAmountToMinorUnits(row[mapping.amountColumn] ?? '')
+    const { amount, direction } = readAmount(row, mapping.amount)
     return {
       accountId: mapping.accountId,
       date: parseDate(row[mapping.dateColumn] ?? '', mapping.dateFormat),
       amount,
       description: (row[mapping.descriptionColumn] ?? '').trim(),
-      // Bank CSVs don't export $0.00 rows in practice; treat zero as income
-      // rather than leave the sign check ambiguous.
-      direction: amount < 0 ? 'expense' : 'income',
+      direction,
       category: UNCATEGORIZED,
       bankTransactionId: mapping.idColumn ? (row[mapping.idColumn] ?? '').trim() : undefined,
     }

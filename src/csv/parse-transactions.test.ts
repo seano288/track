@@ -38,7 +38,7 @@ describe('parseTransactionRows', () => {
   const mapping: ColumnMapping = {
     accountId: 'account-1',
     dateColumn: 'Date',
-    amountColumn: 'Amount',
+    amount: { shape: 'single', amountColumn: 'Amount' },
     descriptionColumn: 'Description',
     dateFormat: 'MM/DD/YYYY',
   }
@@ -80,5 +80,51 @@ describe('parseTransactionRows', () => {
     const rows = [{ Date: '1/2/2024', Amount: '-12.34', Description: 'Coffee shop' }]
 
     expect(parseTransactionRows(rows, mapping)[0].bankTransactionId).toBeUndefined()
+  })
+
+  describe('with a debit/credit column shape', () => {
+    const debitCreditMapping: ColumnMapping = {
+      accountId: 'account-1',
+      dateColumn: 'Date',
+      amount: { shape: 'debit-credit', debitColumn: 'Debit', creditColumn: 'Credit' },
+      descriptionColumn: 'Description',
+      dateFormat: 'MM/DD/YYYY',
+    }
+
+    it('parses a debit row as a negative expense', () => {
+      const rows = [{ Date: '1/2/2024', Debit: '12.34', Credit: '', Description: 'Coffee shop' }]
+
+      expect(parseTransactionRows(rows, debitCreditMapping)[0]).toMatchObject({
+        amount: -1234,
+        direction: 'expense',
+      })
+    })
+
+    it('parses a credit row as a positive income', () => {
+      const rows = [{ Date: '1/3/2024', Debit: '', Credit: '500.00', Description: 'Paycheck' }]
+
+      expect(parseTransactionRows(rows, debitCreditMapping)[0]).toMatchObject({
+        amount: 50000,
+        direction: 'income',
+      })
+    })
+
+    it('treats a debit value already expressed as negative as an expense', () => {
+      const rows = [{ Date: '1/2/2024', Debit: '-12.34', Credit: '', Description: 'Coffee shop' }]
+
+      expect(parseTransactionRows(rows, debitCreditMapping)[0]).toMatchObject({
+        amount: -1234,
+        direction: 'expense',
+      })
+    })
+
+    it('prefers the debit value when both debit and credit are populated on the same row', () => {
+      const rows = [{ Date: '1/2/2024', Debit: '12.34', Credit: '500.00', Description: 'Coffee shop' }]
+
+      expect(parseTransactionRows(rows, debitCreditMapping)[0]).toMatchObject({
+        amount: -1234,
+        direction: 'expense',
+      })
+    })
   })
 })

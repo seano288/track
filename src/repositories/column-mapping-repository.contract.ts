@@ -6,7 +6,7 @@ function mapping(overrides: Partial<ColumnMapping> = {}): ColumnMapping {
   return {
     accountId: 'account-checking',
     dateColumn: 'Date',
-    amountColumn: 'Amount',
+    amount: { shape: 'single', amountColumn: 'Amount' },
     descriptionColumn: 'Description',
     dateFormat: 'MM/DD/YYYY',
     ...overrides,
@@ -29,6 +29,15 @@ export function runColumnMappingRepositoryContract(
       await repository.save(mapping())
 
       expect(await repository.get('account-checking')).toEqual(mapping())
+    })
+
+    it('save then get round-trips a debit/credit amount shape', async () => {
+      const repository = await createRepository()
+      const debitCreditMapping = mapping({ amount: { shape: 'debit-credit', debitColumn: 'Debit', creditColumn: 'Credit' } })
+
+      await repository.save(debitCreditMapping)
+
+      expect(await repository.get('account-checking')).toEqual(debitCreditMapping)
     })
 
     it('saving again for the same account overwrites the previous mapping', async () => {

@@ -1,6 +1,6 @@
 import { For, Show, createSignal } from 'solid-js'
 import type { Account } from './domain/account.ts'
-import type { ColumnMapping, DateFormat } from './domain/column-mapping.ts'
+import type { AmountMapping, ColumnMapping, DateFormat } from './domain/column-mapping.ts'
 import { deduplicateTransactions } from './csv/deduplicate-transactions.ts'
 import { guessColumnMapping } from './csv/guess-column-mapping.ts'
 import { parseCsv } from './csv/parse-csv.ts'
@@ -26,7 +26,10 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
   const [accountId, setAccountId] = createSignal('')
   const [pending, setPending] = createSignal<PendingImport | undefined>(undefined)
   const [dateColumn, setDateColumn] = createSignal('')
+  const [amountShape, setAmountShape] = createSignal<AmountMapping['shape']>('single')
   const [amountColumn, setAmountColumn] = createSignal('')
+  const [debitColumn, setDebitColumn] = createSignal('')
+  const [creditColumn, setCreditColumn] = createSignal('')
   const [descriptionColumn, setDescriptionColumn] = createSignal('')
   const [idColumn, setIdColumn] = createSignal('')
   const [dateFormat, setDateFormat] = createSignal<DateFormat>('MM/DD/YYYY')
@@ -60,7 +63,10 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
 
     const guess = guessColumnMapping(headers)
     setDateColumn(guess.dateColumn ?? '')
+    setAmountShape('single')
     setAmountColumn(guess.amountColumn ?? '')
+    setDebitColumn('')
+    setCreditColumn('')
     setDescriptionColumn(guess.descriptionColumn ?? '')
     setIdColumn(NO_ID_COLUMN)
     setPending({ accountId: selectedAccountId, headers, rows })
@@ -69,12 +75,19 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
   async function handleConfirmMapping(event: SubmitEvent) {
     event.preventDefault()
     const current = pending()
-    if (!current || !dateColumn() || !amountColumn() || !descriptionColumn()) return
+    if (!current || !dateColumn() || !descriptionColumn()) return
+
+    const amount: AmountMapping =
+      amountShape() === 'single'
+        ? { shape: 'single', amountColumn: amountColumn() }
+        : { shape: 'debit-credit', debitColumn: debitColumn(), creditColumn: creditColumn() }
+    if (amount.shape === 'single' && !amount.amountColumn) return
+    if (amount.shape === 'debit-credit' && (!amount.debitColumn || !amount.creditColumn)) return
 
     const mapping: ColumnMapping = {
       accountId: current.accountId,
       dateColumn: dateColumn(),
-      amountColumn: amountColumn(),
+      amount,
       descriptionColumn: descriptionColumn(),
       dateFormat: dateFormat(),
       idColumn: idColumn() === NO_ID_COLUMN ? undefined : idColumn(),
@@ -117,12 +130,44 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
               </select>
             </label>
             <label>
-              Amount column
-              <select value={amountColumn()} onInput={(event) => setAmountColumn(event.currentTarget.value)}>
-                <option value="">Select a column</option>
-                <For each={current().headers}>{(header) => <option value={header}>{header}</option>}</For>
+              Amount shape
+              <select
+                value={amountShape()}
+                onInput={(event) => setAmountShape(event.currentTarget.value as AmountMapping['shape'])}
+              >
+                <option value="single">Single signed amount column</option>
+                <option value="debit-credit">Separate debit and credit columns</option>
               </select>
             </label>
+            <Show
+              when={amountShape() === 'single'}
+              fallback={
+                <>
+                  <label>
+                    Debit column
+                    <select value={debitColumn()} onInput={(event) => setDebitColumn(event.currentTarget.value)}>
+                      <option value="">Select a column</option>
+                      <For each={current().headers}>{(header) => <option value={header}>{header}</option>}</For>
+                    </select>
+                  </label>
+                  <label>
+                    Credit column
+                    <select value={creditColumn()} onInput={(event) => setCreditColumn(event.currentTarget.value)}>
+                      <option value="">Select a column</option>
+                      <For each={current().headers}>{(header) => <option value={header}>{header}</option>}</For>
+                    </select>
+                  </label>
+                </>
+              }
+            >
+              <label>
+                Amount column
+                <select value={amountColumn()} onInput={(event) => setAmountColumn(event.currentTarget.value)}>
+                  <option value="">Select a column</option>
+                  <For each={current().headers}>{(header) => <option value={header}>{header}</option>}</For>
+                </select>
+              </label>
+            </Show>
             <label>
               Description column
               <select
