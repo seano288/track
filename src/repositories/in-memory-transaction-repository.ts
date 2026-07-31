@@ -22,4 +22,8 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     this.#transactions[index] = updated
     return { ...updated }
   }
+
+  async deleteByAccountId(accountId: string): Promise<void> {
+    this.#transactions = this.#transactions.filter((transaction) => transaction.accountId !== accountId)
+  }
 }

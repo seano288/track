@@ -5,6 +5,7 @@ import { requestToPromise, transactionToPromise } from './indexeddb-utils.ts'
 
 const STORE_NAME = STORE_NAMES.transactions
 const ID_INDEX = 'id'
+const ACCOUNT_ID_INDEX = 'accountId'
 
 // Records are keyed by an internal auto-incrementing key (never exposed on
 // Transaction) so getAll() returns them in creation order, matching the
@@ -44,5 +45,13 @@ export class IndexedDBTransactionRepository implements TransactionRepository {
     store.put(updated, key)
     await transactionToPromise(dbTransaction)
     return updated
+  }
+
+  async deleteByAccountId(accountId: string): Promise<void> {
+    const dbTransaction = this.#db.transaction(STORE_NAME, 'readwrite')
+    const store = dbTransaction.objectStore(STORE_NAME)
+    const keys = await requestToPromise(store.index(ACCOUNT_ID_INDEX).getAllKeys(accountId))
+    for (const key of keys) store.delete(key)
+    await transactionToPromise(dbTransaction)
   }
 }

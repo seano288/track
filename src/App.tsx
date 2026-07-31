@@ -1,5 +1,6 @@
 import { For, Show, createMemo, createResource, createSignal, onMount } from 'solid-js'
 import { AddTransaction } from './AddTransaction.tsx'
+import { deleteAccountAndCascade } from './accounts/delete-account-and-cascade.ts'
 import { Categories } from './Categories.tsx'
 import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
@@ -149,9 +150,24 @@ function App() {
   }
 
   async function handleDelete(id: string) {
-    const repository = await accountRepository
-    await repository.delete(id)
+    const account = accounts()?.find((candidate) => candidate.id === id)
+    if (!account) return
+
+    const transactionCount = (transactions() ?? []).filter((transaction) => transaction.accountId === id).length
+    const message =
+      transactionCount > 0
+        ? `Delete "${account.name}"? ${transactionCount} transaction${transactionCount === 1 ? '' : 's'} will be removed.`
+        : `Delete "${account.name}"?`
+    if (!window.confirm(message)) return
+
+    const accountsRepository = await accountRepository
+    const transactionsRepository = await transactionRepository
+    await deleteAccountAndCascade(id, transactions() ?? [], {
+      accounts: accountsRepository,
+      transactions: transactionsRepository,
+    })
     refetchAccounts()
+    refetchTransactions()
   }
 
   return (

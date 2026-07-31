@@ -1,6 +1,6 @@
 import { requestToPromise } from './indexeddb-utils.ts'
 
-const DATABASE_VERSION = 4
+const DATABASE_VERSION = 5
 
 export const STORE_NAMES = {
   accounts: 'accounts',
@@ -44,6 +44,11 @@ export function openDatabase(name: string): Promise<IDBDatabase> {
     const transactions = upgradeTransaction.objectStore(STORE_NAMES.transactions)
     if (!transactions.indexNames.contains('id')) {
       transactions.createIndex('id', 'id', { unique: true })
+    }
+
+    // Added in version 5, for deleteByAccountId() lookups.
+    if (!transactions.indexNames.contains('accountId')) {
+      transactions.createIndex('accountId', 'accountId')
     }
   }
   return requestToPromise(request)

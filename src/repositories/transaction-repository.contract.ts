@@ -124,5 +124,18 @@ export function runTransactionRepositoryContract(
 
       await expect(repository.update('missing-id', { categoryId: 'category-groceries' })).rejects.toThrow()
     })
+
+    it('deleteByAccountId removes every transaction for that account, leaving others untouched', async () => {
+      const repository = await createRepository()
+      const otherAccount = 'account-savings'
+      const [, keeper] = await repository.createMany([
+        newTransaction({ description: 'Coffee shop' }),
+        newTransaction({ accountId: otherAccount, description: 'Transfer in' }),
+      ])
+
+      await repository.deleteByAccountId(CHECKING)
+
+      expect(await repository.list()).toEqual([keeper])
+    })
   })
 }
