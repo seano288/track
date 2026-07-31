@@ -1,12 +1,13 @@
 import { requestToPromise } from './indexeddb-utils.ts'
 
-const DATABASE_VERSION = 3
+const DATABASE_VERSION = 4
 
 export const STORE_NAMES = {
   accounts: 'accounts',
   transactions: 'transactions',
   columnMappings: 'columnMappings',
   categories: 'categories',
+  rules: 'rules',
 } as const
 
 // A single database, opened once per repository, holds one object store per
@@ -32,6 +33,11 @@ export function openDatabase(name: string): Promise<IDBDatabase> {
     if (!db.objectStoreNames.contains(STORE_NAMES.categories)) {
       const categories = db.createObjectStore(STORE_NAMES.categories, { autoIncrement: true })
       categories.createIndex('id', 'id', { unique: true })
+    }
+    if (!db.objectStoreNames.contains(STORE_NAMES.rules)) {
+      const rules = db.createObjectStore(STORE_NAMES.rules, { autoIncrement: true })
+      rules.createIndex('id', 'id', { unique: true })
+      rules.createIndex('categoryId', 'categoryId')
     }
 
     // Added in version 3, for updateCategory() lookups by Transaction.id.

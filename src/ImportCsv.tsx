@@ -5,7 +5,9 @@ import { deduplicateTransactions } from './csv/deduplicate-transactions.ts'
 import { guessColumnMapping } from './csv/guess-column-mapping.ts'
 import { parseCsv } from './csv/parse-csv.ts'
 import { parseTransactionRows } from './csv/parse-transactions.ts'
+import { applyRules } from './rules/apply-rules.ts'
 import { columnMappingRepository } from './repositories/production-column-mapping-repository.ts'
+import { ruleRepository } from './repositories/production-rule-repository.ts'
 import { transactionRepository } from './repositories/production-transaction-repository.ts'
 
 const DATE_FORMATS: DateFormat[] = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
@@ -40,7 +42,9 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
     const repository = await transactionRepository
     const existing = (await repository.list()).filter((transaction) => transaction.accountId === mapping.accountId)
     const { newTransactions, newCount, duplicateCount } = deduplicateTransactions(candidates, existing)
-    await repository.createMany(newTransactions)
+    const rulesRepository = await ruleRepository
+    const rules = await rulesRepository.list()
+    await repository.createMany(applyRules(newTransactions, rules))
     setSummary({ newCount, duplicateCount })
     props.onImported()
   }

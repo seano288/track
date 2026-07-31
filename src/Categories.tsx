@@ -1,10 +1,12 @@
 import { For, Show, createSignal } from 'solid-js'
 import type { Category } from './domain/category.ts'
+import type { Rule } from './domain/rule.ts'
 import type { Transaction } from './domain/transaction.ts'
 
 export function Categories(props: {
   categories: Category[]
   transactions: Transaction[]
+  rules: Rule[]
   onCreate: (name: string) => void | Promise<void>
   onRename: (id: string, name: string) => void | Promise<void>
   onDelete: (id: string) => void | Promise<void>
@@ -13,8 +15,12 @@ export function Categories(props: {
   const [renamingId, setRenamingId] = createSignal<string | undefined>(undefined)
   const [renameValue, setRenameValue] = createSignal('')
 
-  function affectedCount(categoryId: string): number {
+  function affectedTransactionCount(categoryId: string): number {
     return props.transactions.filter((transaction) => transaction.categoryId === categoryId).length
+  }
+
+  function affectedRuleCount(categoryId: string): number {
+    return props.rules.filter((rule) => rule.categoryId === categoryId).length
   }
 
   async function handleCreate(event: SubmitEvent) {
@@ -42,11 +48,15 @@ export function Categories(props: {
   }
 
   async function handleDelete(category: Category) {
-    const count = affectedCount(category.id)
+    const transactionCount = affectedTransactionCount(category.id)
+    const ruleCount = affectedRuleCount(category.id)
+    const clauses = [
+      transactionCount > 0 &&
+        `${transactionCount} transaction${transactionCount === 1 ? '' : 's'} will be reassigned to Uncategorized`,
+      ruleCount > 0 && `${ruleCount} rule${ruleCount === 1 ? '' : 's'} will be removed`,
+    ].filter(Boolean)
     const message =
-      count > 0
-        ? `Delete "${category.name}"? ${count} transaction${count === 1 ? '' : 's'} will be reassigned to Uncategorized.`
-        : `Delete "${category.name}"?`
+      clauses.length > 0 ? `Delete "${category.name}"? ${clauses.join(' and ')}.` : `Delete "${category.name}"?`
     if (!window.confirm(message)) return
 
     await props.onDelete(category.id)

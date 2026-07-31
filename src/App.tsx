@@ -3,9 +3,12 @@ import { Categories } from './Categories.tsx'
 import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
 import { ImportCsv } from './ImportCsv.tsx'
+import { Rules } from './Rules.tsx'
 import { TransactionList } from './TransactionList.tsx'
+import { UncategorizedReview } from './UncategorizedReview.tsx'
 import { accountRepository } from './repositories/production-account-repository.ts'
 import { categoryRepository } from './repositories/production-category-repository.ts'
+import { ruleRepository } from './repositories/production-rule-repository.ts'
 import { transactionRepository } from './repositories/production-transaction-repository.ts'
 
 function App() {
@@ -19,6 +22,10 @@ function App() {
   })
   const [categories, { refetch: refetchCategories }] = createResource(async () => {
     const repository = await categoryRepository
+    return repository.list()
+  })
+  const [rules, { refetch: refetchRules }] = createResource(async () => {
+    const repository = await ruleRepository
     return repository.list()
   })
   const [name, setName] = createSignal('')
@@ -44,11 +51,32 @@ function App() {
   async function handleDeleteCategory(id: string) {
     const categoriesRepository = await categoryRepository
     const transactionsRepository = await transactionRepository
+    const rulesRepository = await ruleRepository
     await deleteCategoryAndReassign(id, transactions() ?? [], {
       categories: categoriesRepository,
       transactions: transactionsRepository,
+      rules: rulesRepository,
     })
     refetchCategories()
+    refetchTransactions()
+    refetchRules()
+  }
+
+  async function handleCreateRule(pattern: string, categoryId: string) {
+    const repository = await ruleRepository
+    await repository.create({ pattern, categoryId })
+    refetchRules()
+  }
+
+  async function handleDeleteRule(id: string) {
+    const repository = await ruleRepository
+    await repository.delete(id)
+    refetchRules()
+  }
+
+  async function handleCategorizeTransaction(transactionId: string, categoryId: string) {
+    const repository = await transactionRepository
+    await repository.updateCategory(transactionId, categoryId)
     refetchTransactions()
   }
 
@@ -98,11 +126,23 @@ function App() {
       <Categories
         categories={categories() ?? []}
         transactions={transactions() ?? []}
+        rules={rules() ?? []}
         onCreate={handleCreateCategory}
         onRename={handleRenameCategory}
         onDelete={handleDeleteCategory}
       />
+      <Rules
+        rules={rules() ?? []}
+        categories={categories() ?? []}
+        onCreate={handleCreateRule}
+        onDelete={handleDeleteRule}
+      />
       <ImportCsv accounts={accounts() ?? []} onImported={refetchTransactions} />
+      <UncategorizedReview
+        transactions={transactions() ?? []}
+        categories={categories() ?? []}
+        onCategorize={handleCategorizeTransaction}
+      />
       <TransactionList transactions={transactions() ?? []} accounts={accounts() ?? []} categories={categories() ?? []} />
     </>
   )
