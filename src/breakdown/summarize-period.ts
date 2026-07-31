@@ -1,4 +1,5 @@
 import type { Category } from '../domain/category.ts'
+import { isDateInPeriod } from '../domain/period.ts'
 import type { Period } from '../domain/period.ts'
 import type { Transaction } from '../domain/transaction.ts'
 
@@ -20,12 +21,10 @@ export interface PeriodSummary {
   cashFlow: CashFlowTotals
 }
 
-function inPeriod(transaction: Transaction, period: Period): boolean {
-  return transaction.date >= period.start && transaction.date <= period.end
-}
-
 export function summarizePeriod(transactions: Transaction[], categories: Category[], period: Period): PeriodSummary {
-  const inRange = transactions.filter((transaction) => transaction.direction !== 'transfer' && inPeriod(transaction, period))
+  const inRange = transactions.filter(
+    (transaction) => transaction.direction !== 'transfer' && isDateInPeriod(transaction.date, period),
+  )
 
   const income = inRange.filter((t) => t.direction === 'income').reduce((sum, t) => sum + t.amount, 0)
   const expenseTransactions = inRange.filter((t) => t.direction === 'expense')

@@ -5,7 +5,9 @@ import { deleteCategoryAndReassign } from './categories/delete-category-and-reas
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
 import { CashFlowSummary } from './CashFlowSummary.tsx'
 import { CategoryBreakdown } from './CategoryBreakdown.tsx'
+import { CategoryTrend } from './CategoryTrend.tsx'
 import { summarizePeriod } from './breakdown/summarize-period.ts'
+import { summarizeTrend } from './breakdown/summarize-trend.ts'
 import { defaultPeriod } from './domain/period.ts'
 import type { NewManualTransaction, TransactionEdits } from './domain/transaction.ts'
 import { ImportCsv } from './ImportCsv.tsx'
@@ -42,6 +44,7 @@ function App() {
   const [ruleHint, setRuleHint] = createSignal<{ description: string; categoryId: string } | null>(null)
   const [period, setPeriod] = createSignal(defaultPeriod())
   const summary = createMemo(() => summarizePeriod(transactions() ?? [], categories() ?? [], period()))
+  const trend = createMemo(() => summarizeTrend(transactions() ?? [], categories() ?? [], period()))
 
   onMount(async () => {
     const repository = await categoryRepository
@@ -144,6 +147,7 @@ function App() {
       <PeriodPicker period={period()} onChange={setPeriod} />
       <CategoryBreakdown breakdown={summary().breakdown} />
       <CashFlowSummary cashFlow={summary().cashFlow} />
+      <CategoryTrend trend={trend()} />
       <section>
         <h1>Accounts</h1>
         <form onSubmit={handleCreate}>

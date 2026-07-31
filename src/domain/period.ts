@@ -8,8 +8,13 @@ export interface Period {
   end: string
 }
 
-function pad2(value: number): string {
+export function pad2(value: number): string {
   return String(value).padStart(2, '0')
+}
+
+// start/end are both inclusive, so a plain string comparison is sufficient.
+export function isDateInPeriod(date: string, period: Period): boolean {
+  return date >= period.start && date <= period.end
 }
 
 function lastDayOfMonth(year: number, month: number): number {
