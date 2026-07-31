@@ -1,4 +1,4 @@
-import type { NewTransaction, Transaction } from '../domain/transaction.ts'
+import type { NewTransaction, Transaction, TransactionEdits } from '../domain/transaction.ts'
 import type { TransactionRepository } from './transaction-repository.ts'
 import { openDatabase, STORE_NAMES } from './database.ts'
 import { requestToPromise, transactionToPromise } from './indexeddb-utils.ts'
@@ -35,12 +35,12 @@ export class IndexedDBTransactionRepository implements TransactionRepository {
     return created
   }
 
-  async updateCategory(id: string, categoryId: string): Promise<Transaction> {
+  async update(id: string, edits: TransactionEdits): Promise<Transaction> {
     const dbTransaction = this.#db.transaction(STORE_NAME, 'readwrite')
     const store = dbTransaction.objectStore(STORE_NAME)
     const key = (await requestToPromise(store.index(ID_INDEX).getKey(id))) as IDBValidKey
     const existing = (await requestToPromise(store.get(key))) as Transaction
-    const updated: Transaction = { ...existing, categoryId }
+    const updated: Transaction = { ...existing, ...edits }
     store.put(updated, key)
     await transactionToPromise(dbTransaction)
     return updated

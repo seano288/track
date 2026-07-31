@@ -1,4 +1,4 @@
-import type { NewTransaction, Transaction } from '../domain/transaction.ts'
+import type { NewTransaction, Transaction, TransactionEdits } from '../domain/transaction.ts'
 import type { TransactionRepository } from './transaction-repository.ts'
 
 export class InMemoryTransactionRepository implements TransactionRepository {
@@ -14,9 +14,12 @@ export class InMemoryTransactionRepository implements TransactionRepository {
     return created
   }
 
-  async updateCategory(id: string, categoryId: string): Promise<Transaction> {
-    const transaction = this.#transactions.find((transaction) => transaction.id === id)!
-    transaction.categoryId = categoryId
-    return { ...transaction }
+  async update(id: string, edits: TransactionEdits): Promise<Transaction> {
+    const index = this.#transactions.findIndex((transaction) => transaction.id === id)
+    if (index === -1) throw new Error(`Transaction not found: ${id}`)
+
+    const updated = { ...this.#transactions[index], ...edits }
+    this.#transactions[index] = updated
+    return { ...updated }
   }
 }

@@ -2,6 +2,7 @@ import { For, Show, createResource, createSignal, onMount } from 'solid-js'
 import { Categories } from './Categories.tsx'
 import { deleteCategoryAndReassign } from './categories/delete-category-and-reassign.ts'
 import { seedStarterCategories } from './categories/seed-starter-categories.ts'
+import type { TransactionEdits } from './domain/transaction.ts'
 import { ImportCsv } from './ImportCsv.tsx'
 import { Rules } from './Rules.tsx'
 import { RulePromptHint } from './RulePromptHint.tsx'
@@ -79,9 +80,15 @@ function App() {
   async function handleCategorizeTransaction(transactionId: string, categoryId: string) {
     const repository = await transactionRepository
     const transaction = transactions()?.find((candidate) => candidate.id === transactionId)
-    await repository.updateCategory(transactionId, categoryId)
+    await repository.update(transactionId, { categoryId })
     refetchTransactions()
     if (transaction) setRuleHint({ description: transaction.description, categoryId })
+  }
+
+  async function handleEditTransaction(transactionId: string, edits: TransactionEdits) {
+    const repository = await transactionRepository
+    await repository.update(transactionId, edits)
+    refetchTransactions()
   }
 
   async function handleAcceptRuleHint() {
@@ -170,7 +177,12 @@ function App() {
         categories={categories() ?? []}
         onCategorize={handleCategorizeTransaction}
       />
-      <TransactionList transactions={transactions() ?? []} accounts={accounts() ?? []} categories={categories() ?? []} />
+      <TransactionList
+        transactions={transactions() ?? []}
+        accounts={accounts() ?? []}
+        categories={categories() ?? []}
+        onEdit={handleEditTransaction}
+      />
     </>
   )
 }

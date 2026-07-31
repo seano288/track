@@ -1,7 +1,7 @@
-import type { NewTransaction, Transaction } from '../domain/transaction.ts'
+import type { NewTransaction, Transaction, TransactionEdits } from '../domain/transaction.ts'
 
 export interface TransactionRepository {
   createMany(transactions: NewTransaction[]): Promise<Transaction[]>
   list(): Promise<Transaction[]>
-  updateCategory(id: string, categoryId: string): Promise<Transaction>
+  update(id: string, edits: TransactionEdits): Promise<Transaction>
 }

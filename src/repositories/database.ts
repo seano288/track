@@ -40,7 +40,7 @@ export function openDatabase(name: string): Promise<IDBDatabase> {
       rules.createIndex('categoryId', 'categoryId')
     }
 
-    // Added in version 3, for updateCategory() lookups by Transaction.id.
+    // Added in version 3, for update() lookups by Transaction.id.
     const transactions = upgradeTransaction.objectStore(STORE_NAMES.transactions)
     if (!transactions.indexNames.contains('id')) {
       transactions.createIndex('id', 'id', { unique: true })

@@ -11,7 +11,7 @@ export async function deleteCategoryAndReassign(
 ): Promise<number> {
   const affected = transactions.filter((transaction) => transaction.categoryId === categoryId)
   for (const transaction of affected) {
-    await repositories.transactions.updateCategory(transaction.id, UNCATEGORIZED)
+    await repositories.transactions.update(transaction.id, { categoryId: UNCATEGORIZED })
   }
   await repositories.rules.deleteByCategoryId(categoryId)
   await repositories.categories.delete(categoryId)
