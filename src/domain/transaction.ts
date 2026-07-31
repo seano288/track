@@ -10,6 +10,7 @@ export interface Transaction {
   description: string
   direction: Direction
   category: string
+  bankTransactionId?: string
 }
 
 export interface NewTransaction {
@@ -19,4 +20,5 @@ export interface NewTransaction {
   description: string
   direction: Direction
   category: string
+  bankTransactionId?: string
 }

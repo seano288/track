@@ -6,4 +6,5 @@ export interface ColumnMapping {
   amountColumn: string
   descriptionColumn: string
   dateFormat: DateFormat
+  idColumn?: string
 }

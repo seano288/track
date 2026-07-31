@@ -39,6 +39,7 @@ export function parseTransactionRows(rows: Record<string, string>[], mapping: Co
       // rather than leave the sign check ambiguous.
       direction: amount < 0 ? 'expense' : 'income',
       category: UNCATEGORIZED,
+      bankTransactionId: mapping.idColumn ? (row[mapping.idColumn] ?? '').trim() : undefined,
     }
   })
 }

@@ -68,4 +68,17 @@ describe('parseTransactionRows', () => {
       },
     ])
   })
+
+  it('carries the bank transaction ID when the mapping provides an ID column', () => {
+    const mappingWithId: ColumnMapping = { ...mapping, idColumn: 'Transaction ID' }
+    const rows = [{ Date: '1/2/2024', Amount: '-12.34', Description: 'Coffee shop', 'Transaction ID': 'txn-001' }]
+
+    expect(parseTransactionRows(rows, mappingWithId)[0].bankTransactionId).toBe('txn-001')
+  })
+
+  it('leaves the bank transaction ID undefined when the mapping has no ID column', () => {
+    const rows = [{ Date: '1/2/2024', Amount: '-12.34', Description: 'Coffee shop' }]
+
+    expect(parseTransactionRows(rows, mapping)[0].bankTransactionId).toBeUndefined()
+  })
 })

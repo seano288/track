@@ -1,6 +1,7 @@
 import { For, Show, createSignal } from 'solid-js'
 import type { Account } from './domain/account.ts'
 import type { ColumnMapping, DateFormat } from './domain/column-mapping.ts'
+import { deduplicateTransactions } from './csv/deduplicate-transactions.ts'
 import { guessColumnMapping } from './csv/guess-column-mapping.ts'
 import { parseCsv } from './csv/parse-csv.ts'
 import { parseTransactionRows } from './csv/parse-transactions.ts'
@@ -8,11 +9,17 @@ import { columnMappingRepository } from './repositories/production-column-mappin
 import { transactionRepository } from './repositories/production-transaction-repository.ts'
 
 const DATE_FORMATS: DateFormat[] = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
+const NO_ID_COLUMN = ''
 
 interface PendingImport {
   accountId: string
   headers: string[]
   rows: Record<string, string>[]
+}
+
+interface ImportSummary {
+  newCount: number
+  duplicateCount: number
 }
 
 export function ImportCsv(props: { accounts: Account[]; onImported: () => void }) {
@@ -21,12 +28,17 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
   const [dateColumn, setDateColumn] = createSignal('')
   const [amountColumn, setAmountColumn] = createSignal('')
   const [descriptionColumn, setDescriptionColumn] = createSignal('')
+  const [idColumn, setIdColumn] = createSignal('')
   const [dateFormat, setDateFormat] = createSignal<DateFormat>('MM/DD/YYYY')
+  const [summary, setSummary] = createSignal<ImportSummary | undefined>(undefined)
 
   async function importRows(rows: Record<string, string>[], mapping: ColumnMapping) {
-    const transactions = parseTransactionRows(rows, mapping)
+    const candidates = parseTransactionRows(rows, mapping)
     const repository = await transactionRepository
-    await repository.createMany(transactions)
+    const existing = (await repository.list()).filter((transaction) => transaction.accountId === mapping.accountId)
+    const { newTransactions, newCount, duplicateCount } = deduplicateTransactions(candidates, existing)
+    await repository.createMany(newTransactions)
+    setSummary({ newCount, duplicateCount })
     props.onImported()
   }
 
@@ -50,6 +62,7 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
     setDateColumn(guess.dateColumn ?? '')
     setAmountColumn(guess.amountColumn ?? '')
     setDescriptionColumn(guess.descriptionColumn ?? '')
+    setIdColumn(NO_ID_COLUMN)
     setPending({ accountId: selectedAccountId, headers, rows })
   }
 
@@ -64,6 +77,7 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
       amountColumn: amountColumn(),
       descriptionColumn: descriptionColumn(),
       dateFormat: dateFormat(),
+      idColumn: idColumn() === NO_ID_COLUMN ? undefined : idColumn(),
     }
     const repository = await columnMappingRepository
     await repository.save(mapping)
@@ -128,8 +142,23 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
                 <For each={DATE_FORMATS}>{(format) => <option value={format}>{format}</option>}</For>
               </select>
             </label>
+            <label>
+              Transaction ID column (optional)
+              <select value={idColumn()} onInput={(event) => setIdColumn(event.currentTarget.value)}>
+                <option value={NO_ID_COLUMN}>None</option>
+                <For each={current().headers}>{(header) => <option value={header}>{header}</option>}</For>
+              </select>
+            </label>
             <button type="submit">Save mapping and import</button>
           </form>
+        )}
+      </Show>
+
+      <Show when={summary()}>
+        {(current) => (
+          <p>
+            Imported {current().newCount} new, {current().duplicateCount} already seen.
+          </p>
         )}
       </Show>
     </section>
