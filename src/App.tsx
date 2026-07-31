@@ -23,7 +23,19 @@ import { transactionRepository } from './repositories/production-transaction-rep
 import { buildManualTransaction } from './transactions/add-manual-transaction.ts'
 import { validateTransactionEdits } from './transactions/edit-transaction.ts'
 
+type Tab = 'overview' | 'trends' | 'transactions' | 'categories' | 'rules' | 'accounts'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'trends', label: 'Trends' },
+  { id: 'transactions', label: 'Transactions' },
+  { id: 'categories', label: 'Categories' },
+  { id: 'rules', label: 'Rules' },
+  { id: 'accounts', label: 'Accounts' },
+]
+
 function App() {
+  const [tab, setTab] = createSignal<Tab>('overview')
   const [accounts, { refetch: refetchAccounts }] = createResource(async () => {
     const repository = await accountRepository
     return repository.list()
@@ -143,74 +155,102 @@ function App() {
   }
 
   return (
-    <>
-      <PeriodPicker period={period()} onChange={setPeriod} />
-      <CategoryBreakdown breakdown={summary().breakdown} />
-      <CashFlowSummary cashFlow={summary().cashFlow} />
-      <CategoryTrend trend={trend()} />
-      <section>
-        <h1>Accounts</h1>
-        <form onSubmit={handleCreate}>
-          <input
-            value={name()}
-            onInput={(event) => setName(event.currentTarget.value)}
-            placeholder="Account name"
-            aria-label="Account name"
-          />
-          <button type="submit">Add account</button>
-        </form>
-        <ul>
-          <For each={accounts()}>
-            {(account) => (
-              <li>
-                {account.name}
-                <button type="button" onClick={() => handleDelete(account.id)}>
-                  Delete
-                </button>
-              </li>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          Track<span>.</span>
+        </div>
+        <nav class="nav">
+          <For each={TABS}>
+            {(candidate) => (
+              <button type="button" classList={{ active: tab() === candidate.id }} onClick={() => setTab(candidate.id)}>
+                {candidate.label}
+              </button>
             )}
           </For>
-        </ul>
-      </section>
-      <Categories
-        categories={categories() ?? []}
-        transactions={transactions() ?? []}
-        rules={rules() ?? []}
-        onCreate={handleCreateCategory}
-        onRename={handleRenameCategory}
-        onDelete={handleDeleteCategory}
-      />
-      <Rules
-        rules={rules() ?? []}
-        categories={categories() ?? []}
-        onCreate={handleCreateRule}
-        onDelete={handleDeleteRule}
-      />
-      <ImportCsv accounts={accounts() ?? []} onImported={refetchTransactions} />
-      <Show when={ruleHint()}>
-        {(hint) => (
-          <RulePromptHint
-            description={hint().description}
-            categoryId={hint().categoryId}
+        </nav>
+      </aside>
+      <main class="main">
+        <Show when={tab() === 'overview'}>
+          <PeriodPicker period={period()} onChange={setPeriod} />
+          <CashFlowSummary cashFlow={summary().cashFlow} />
+          <CategoryBreakdown breakdown={summary().breakdown} categories={categories() ?? []} />
+        </Show>
+        <Show when={tab() === 'trends'}>
+          <CategoryTrend trend={trend()} categories={categories() ?? []} />
+        </Show>
+        <Show when={tab() === 'transactions'}>
+          <AddTransaction categories={categories() ?? []} onAdd={handleAddTransaction} />
+          <UncategorizedReview
+            transactions={transactions() ?? []}
             categories={categories() ?? []}
-            onAccept={handleAcceptRuleHint}
-            onDismiss={handleDismissRuleHint}
+            onCategorize={handleCategorizeTransaction}
           />
-        )}
-      </Show>
-      <UncategorizedReview
-        transactions={transactions() ?? []}
-        categories={categories() ?? []}
-        onCategorize={handleCategorizeTransaction}
-      />
-      <AddTransaction categories={categories() ?? []} onAdd={handleAddTransaction} />
-      <TransactionList
-        transactions={transactions() ?? []}
-        accounts={accounts() ?? []}
-        categories={categories() ?? []}
-        onEdit={handleEditTransaction}
-      />
-    </>
+          <TransactionList
+            transactions={transactions() ?? []}
+            accounts={accounts() ?? []}
+            categories={categories() ?? []}
+            onEdit={handleEditTransaction}
+          />
+        </Show>
+        <Show when={tab() === 'categories'}>
+          <Categories
+            categories={categories() ?? []}
+            transactions={transactions() ?? []}
+            rules={rules() ?? []}
+            onCreate={handleCreateCategory}
+            onRename={handleRenameCategory}
+            onDelete={handleDeleteCategory}
+          />
+        </Show>
+        <Show when={tab() === 'rules'}>
+          <Rules
+            rules={rules() ?? []}
+            categories={categories() ?? []}
+            onCreate={handleCreateRule}
+            onDelete={handleDeleteRule}
+          />
+        </Show>
+        <Show when={tab() === 'accounts'}>
+          <section>
+            <h1>Accounts</h1>
+            <form onSubmit={handleCreate}>
+              <input
+                value={name()}
+                onInput={(event) => setName(event.currentTarget.value)}
+                placeholder="Account name"
+                aria-label="Account name"
+              />
+              <button type="submit">Add account</button>
+            </form>
+            <ul>
+              <For each={accounts()}>
+                {(account) => (
+                  <li>
+                    {account.name}
+                    <button type="button" onClick={() => handleDelete(account.id)}>
+                      Delete
+                    </button>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </section>
+          <ImportCsv accounts={accounts() ?? []} onImported={refetchTransactions} />
+        </Show>
+        <Show when={ruleHint()}>
+          {(hint) => (
+            <RulePromptHint
+              description={hint().description}
+              categoryId={hint().categoryId}
+              categories={categories() ?? []}
+              onAccept={handleAcceptRuleHint}
+              onDismiss={handleDismissRuleHint}
+            />
+          )}
+        </Show>
+      </main>
+    </div>
   )
 }
 

@@ -1,14 +1,52 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
+  color-scheme: dark;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* surfaces */
+  --bg: #0b1220;
+  --panel: #131d30;
+  --panel-alt: #0e1626;
+  --panel-hover: #172137;
+  --border: #1e2a41;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* ink */
+  --text-h: #ffffff;
+  --text: #b9c8de;
+  --text-muted: #8598b4;
+  --text-label: #93a6c2;
+
+  /* accent */
+  --accent: #38bdf8;
+
+  /* categorical series (dataviz skill's default palette, dark column,
+     re-validated against this app's --bg surface #0b1220 with the
+     dataviz skill's validate_palette.js — all six checks pass). Slot
+     order is the CVD-safety mechanism: assigned by stable category
+     order (see src/breakdown/category-color.ts), never cycled or
+     reordered by rank. Reserved for chart series identity only — never
+     borrowed for a fixed UI badge, or a badge could collide with
+     whichever category lands on that slot. */
+  --series-1: #3987e5; /* blue */
+  --series-2: #008300; /* green */
+  --series-3: #d55181; /* magenta */
+  --series-4: #c98500; /* yellow */
+  --series-5: #199e70; /* aqua */
+  --series-6: #d95926; /* orange */
+  --series-7: #9085e9; /* violet */
+  --series-8: #e66767; /* red */
+  --series-overflow: #64748b; /* categories beyond slot 8 fold here, not a generated hue */
+
+  /* status (fixed, reserved meaning — never themed) */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+
+  /* fixed UI state badges — deliberately outside the categorical series
+     above, so a badge never renders identically to a real category */
+  --state-transfer: #7c6ce0;
+
+  --sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  font: 13px/1.45 var(--sans);
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -17,13 +55,8 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -31,20 +64,413 @@ body {
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  box-sizing: border-box;
+  min-height: 100vh;
 }
 
 h1 {
   font-family: var(--sans);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-h);
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+  font-size: 16px;
+  letter-spacing: 0;
+  margin: 0 0 14px;
+}
+
+/* ---------- app shell ---------- */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  padding: 18px 12px;
+  border-right: 1px solid var(--border);
+}
+
+.brand {
+  color: var(--text-h);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: 4px 10px 20px;
+}
+
+.brand span {
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nav button:hover {
+  color: var(--text-h);
+  background: var(--panel-hover);
+}
+
+.nav button.active {
+  background: var(--panel);
+  color: var(--text-h);
+}
+
+.main {
+  padding: 18px 22px 44px;
+  max-width: 1200px;
+}
+
+/* ---------- panels ---------- */
+/* minimal lines: panels separated by fill, no borders */
+
+section {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.kpi {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 13px 15px;
+}
+
+.kpi-label {
+  color: var(--text-label);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.kpi-value {
+  font-size: 23px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.text-good {
+  color: var(--status-good);
+}
+
+.text-critical {
+  color: var(--status-critical);
+}
+
+/* ---------- forms ---------- */
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+input,
+select {
+  background: var(--panel-alt);
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 11px;
+  color: var(--text-h);
+  font: inherit;
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+input[type='checkbox'] {
+  width: auto;
+}
+
+button {
+  background: var(--panel-alt);
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 11px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--panel-hover);
+  color: var(--text-h);
+}
+
+button[type='submit'] {
+  background: var(--accent);
+  color: #052235;
+}
+
+button[type='submit']:hover {
+  background: #5ecbfb;
+}
+
+/* ---------- lists ---------- */
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+}
+
+li:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- tables ---------- */
+/* minimal lines: one hairline under the header, no per-row borders */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-label);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  color: var(--text-h);
+}
+
+td {
+  padding: 7px 8px;
+}
+
+/* ---------- transaction list grid ---------- */
+
+.tx-header,
+.tx-row {
+  display: grid;
+  grid-template-columns: 70px 110px 1fr 130px 90px 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+}
+
+.tx-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.tx-header button.sortable {
+  background: transparent;
+  padding: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--text-label);
+}
+
+.tx-header button.sortable:hover {
+  background: transparent;
+  color: var(--text-h);
+}
+
+.tx-row:hover {
+  background: var(--panel-hover);
+  border-radius: 6px;
+}
+
+.tx-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.tx-amount.income {
+  color: var(--status-good);
+}
+
+.tx-note {
+  color: var(--text-muted);
+}
+
+/* ---------- pills ---------- */
+
+.pill {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--panel-alt);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill-transfer {
+  background: #241d3f;
+  color: var(--state-transfer);
+}
+
+.pill-uncategorized {
+  background: #33280f;
+  color: var(--status-warning);
+}
+
+/* ---------- category breakdown bars ---------- */
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 96px 1fr 80px 48px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.bar-head {
+  color: var(--text-label);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.bar-name {
+  font-weight: 600;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  height: 12px;
+  background: var(--panel-alt);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.bar-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.bar-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ---------- trend chart ---------- */
+/* per-row in-cell bar: the amount stays real accessible text, the fill
+   behind it is decorative magnitude-within-row (own scale per category,
+   since a category's spend can be orders of magnitude apart from another's) */
+
+.trend-cell {
+  position: relative;
+}
+
+.trend-fill {
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  border-radius: 3px;
+  opacity: 0.35;
+}
+
+.trend-value {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.period-picker {
+  margin-bottom: 14px;
+}
+
+/* ---------- rule hint toast ---------- */
+
+[role='status'] {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  max-width: 480px;
+}
+
+[role='status'] p {
+  margin: 0 0 8px;
+  color: var(--text-h);
 }

@@ -26,7 +26,7 @@ export function PeriodPicker(props: { period: Period; onChange: (period: Period)
   }
 
   return (
-    <div>
+    <div class="toolbar period-picker">
       <select
         aria-label="Period type"
         value={type()}

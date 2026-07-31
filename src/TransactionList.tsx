@@ -3,7 +3,7 @@ import { For, Show, createMemo, createSignal } from 'solid-js'
 import type { Account } from './domain/account.ts'
 import type { Category } from './domain/category.ts'
 import type { Direction, Transaction, TransactionEdits } from './domain/transaction.ts'
-import { DIRECTIONS, isManualTransaction } from './domain/transaction.ts'
+import { DIRECTIONS, UNCATEGORIZED, isManualTransaction } from './domain/transaction.ts'
 import type { SortDirection, TransactionSortColumn } from './transactions/filter-sort-transactions.ts'
 import { filterSortTransactions } from './transactions/filter-sort-transactions.ts'
 import { parseAmountInput } from './transactions/parse-amount-input.ts'
@@ -94,6 +94,12 @@ export function TransactionList(props: {
     return props.categories.find((category) => category.id === categoryId)?.name ?? categoryId
   }
 
+  function categoryPill(transaction: Transaction): { label: string; className: string } {
+    if (transaction.direction === 'transfer') return { label: 'Transfer', className: 'pill pill-transfer' }
+    if (transaction.categoryId === UNCATEGORIZED) return { label: 'Uncategorized', className: 'pill pill-uncategorized' }
+    return { label: categoryName(transaction.categoryId), className: 'pill' }
+  }
+
   function formatAmount(minorUnits: number): string {
     return (minorUnits / 100).toFixed(2)
   }
@@ -130,7 +136,7 @@ export function TransactionList(props: {
   return (
     <section>
       <h1>Transactions</h1>
-      <form onSubmit={(event) => event.preventDefault()}>
+      <form class="toolbar" onSubmit={(event) => event.preventDefault()}>
         <input
           value={search()}
           onInput={(event) => setSearch(event.currentTarget.value)}
@@ -194,15 +200,16 @@ export function TransactionList(props: {
           Uncategorized only
         </label>
       </form>
-      <div>
+      <div class="tx-header">
         <For each={SORTABLE_COLUMNS}>
           {({ column, label }) => (
-            <button type="button" onClick={() => toggleSort(column)}>
+            <button type="button" class="sortable" onClick={() => toggleSort(column)}>
               {label}
               {sortIndicator(column)}
             </button>
           )}
         </For>
+        <span />
       </div>
       <div ref={scrollParentRef} style={{ height: '600px', overflow: 'auto' }}>
         <Show when={filtered().length > 0} fallback={<p>No transactions match.</p>}>
@@ -227,15 +234,23 @@ export function TransactionList(props: {
                         <Show
                           when={editingId() === transaction().id}
                           fallback={
-                            <>
-                              {transaction().date} — {accountName(transaction().accountId)} —{' '}
-                              {transaction().description} — {formatAmount(transaction().amount)} —{' '}
-                              {transaction().direction} — {categoryName(transaction().categoryId)}
-                              <Show when={transaction().note}>{(note) => <> — {note()}</>}</Show>
+                            <div class="tx-row">
+                              <span>{transaction().date}</span>
+                              <span>{accountName(transaction().accountId)}</span>
+                              <span>
+                                <span class="bar-name">{transaction().description}</span>
+                                <Show when={transaction().note}>
+                                  {(note) => <span class="tx-note"> — {note()}</span>}
+                                </Show>
+                              </span>
+                              <span class={categoryPill(transaction()).className}>{categoryPill(transaction()).label}</span>
+                              <span class="tx-amount" classList={{ income: transaction().direction === 'income' }}>
+                                {formatAmount(transaction().amount)}
+                              </span>
                               <button type="button" onClick={() => startEdit(transaction())}>
                                 Edit
                               </button>
-                            </>
+                            </div>
                           }
                         >
                           <form onSubmit={(event) => confirmEdit(event, transaction())}>
