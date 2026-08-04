@@ -18,12 +18,20 @@ js-framework-benchmark for exactly this data-heavy, interactive workload.
   thinner table/charting ecosystem than the alternatives.
 - **SolidJS (chosen)** — fine-grained reactivity and near-vanilla benchmark
   performance. The one real risk — table/virtualization maturity — is removed by
-  TanStack Table and TanStack Virtual, which ship official Solid adapters.
+  TanStack Virtual, which ships an official Solid adapter.
 
 ## Consequences
 
 Smaller ecosystem than React: fewer drop-in components and a smaller hiring/knowledge
 pool. Accepted deliberately — this is a single-user personal project where the
-performance ceiling matters more than ecosystem breadth. Charting is done with a
-framework-agnostic library, since charts render aggregated data (a dozen bars, a few
-dozen slices) and are never a performance concern.
+performance ceiling matters more than ecosystem breadth.
+
+**Revised during v1 build:** the transaction table uses TanStack Virtual for
+virtualization only — sorting and column rendering are hand-rolled directly against the
+in-memory array, not TanStack Table. Category breakdown and trend charts are hand-rolled
+bars, not a charting library. At this app's scale (a few thousand rows, a dozen bars) the
+performance risk TanStack Table would have hedged against never materialized — `solid-virtual`
+alone keeps the row count off the DOM — and a charting library would add a dependency
+without solving a problem the simple markup doesn't already handle. Revisit only if the
+transaction list needs column resizing/reordering/pinning, or charts need interactivity
+(tooltips, zoom) that hand-rolled markup can't reasonably grow into.
