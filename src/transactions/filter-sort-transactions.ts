@@ -1,5 +1,6 @@
 import type { Account } from '../domain/account.ts'
 import type { Category } from '../domain/category.ts'
+import { categoryName } from '../domain/category.ts'
 import type { Direction, Transaction } from '../domain/transaction.ts'
 import { UNCATEGORIZED } from '../domain/transaction.ts'
 
@@ -30,7 +31,6 @@ export function filterSortTransactions(
   filters: TransactionListFilters = {},
 ): Transaction[] {
   const accountName = (id: string) => accounts.find((account) => account.id === id)?.name ?? id
-  const categoryName = (id: string) => categories.find((category) => category.id === id)?.name ?? id
 
   const search = filters.search?.trim().toLowerCase()
 
@@ -58,7 +58,7 @@ export function filterSortTransactions(
       case 'description':
         return transaction.description
       case 'category':
-        return categoryName(transaction.categoryId)
+        return categoryName(categories, transaction.categoryId)
       case 'account':
         return accountName(transaction.accountId)
       case 'amount':

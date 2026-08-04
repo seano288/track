@@ -2,6 +2,8 @@ import { createVirtualizer } from '@tanstack/solid-virtual'
 import { For, Show, createMemo, createSignal } from 'solid-js'
 import type { Account } from './domain/account.ts'
 import type { Category } from './domain/category.ts'
+import { categoryName } from './domain/category.ts'
+import { formatAmount } from './domain/money.ts'
 import type { Direction, Transaction, TransactionEdits } from './domain/transaction.ts'
 import { DIRECTIONS, UNCATEGORIZED, isManualTransaction } from './domain/transaction.ts'
 import type { SortDirection, TransactionSortColumn } from './transactions/filter-sort-transactions.ts'
@@ -90,18 +92,10 @@ export function TransactionList(props: {
     return props.accounts.find((account) => account.id === accountId)?.name ?? accountId
   }
 
-  function categoryName(categoryId: string): string {
-    return props.categories.find((category) => category.id === categoryId)?.name ?? categoryId
-  }
-
   function categoryPill(transaction: Transaction): { label: string; className: string } {
     if (transaction.direction === 'transfer') return { label: 'Transfer', className: 'pill pill-transfer' }
     if (transaction.categoryId === UNCATEGORIZED) return { label: 'Uncategorized', className: 'pill pill-uncategorized' }
-    return { label: categoryName(transaction.categoryId), className: 'pill' }
-  }
-
-  function formatAmount(minorUnits: number): string {
-    return (minorUnits / 100).toFixed(2)
+    return { label: categoryName(props.categories, transaction.categoryId), className: 'pill' }
   }
 
   function startEdit(transaction: Transaction) {

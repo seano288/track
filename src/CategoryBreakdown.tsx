@@ -2,13 +2,10 @@ import { For, Show, createMemo } from 'solid-js'
 import { assignCategoryColors, colorFor } from './breakdown/category-color.ts'
 import type { CategoryBreakdownRow } from './breakdown/summarize-period.ts'
 import type { Category } from './domain/category.ts'
+import { formatAmount } from './domain/money.ts'
 
 export function CategoryBreakdown(props: { breakdown: CategoryBreakdownRow[]; categories: Category[] }) {
   const colors = createMemo(() => assignCategoryColors(props.categories))
-
-  function formatAmount(minorUnits: number): string {
-    return (minorUnits / 100).toFixed(2)
-  }
 
   function maxAmount(): number {
     return Math.max(...props.breakdown.map((row) => row.amount), 1)

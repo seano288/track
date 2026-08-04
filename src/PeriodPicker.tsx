@@ -1,6 +1,6 @@
 import { For, Show, createSignal } from 'solid-js'
 import type { Period, PeriodType } from './domain/period.ts'
-import { periodForMonth, periodForQuarter, periodForRange, periodForYear } from './domain/period.ts'
+import { periodForCustom, periodForMonth, periodForQuarter, periodForYear } from './domain/period.ts'
 
 const PERIOD_TYPES: PeriodType[] = ['month', 'quarter', 'year', 'custom']
 const QUARTERS = [1, 2, 3, 4]
@@ -17,7 +17,7 @@ export function PeriodPicker(props: { period: Period; onChange: (period: Period)
     if (currentType === 'month') props.onChange(periodForMonth(month()))
     else if (currentType === 'quarter') props.onChange(periodForQuarter(year(), quarter()))
     else if (currentType === 'year') props.onChange(periodForYear(year()))
-    else props.onChange(periodForRange(start(), end()))
+    else props.onChange(periodForCustom(start(), end()))
   }
 
   function handleTypeChange(next: PeriodType) {

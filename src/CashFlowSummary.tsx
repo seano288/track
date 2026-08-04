@@ -1,10 +1,7 @@
 import type { CashFlowTotals } from './breakdown/summarize-period.ts'
+import { formatAmount } from './domain/money.ts'
 
 export function CashFlowSummary(props: { cashFlow: CashFlowTotals }) {
-  function formatAmount(minorUnits: number): string {
-    return (minorUnits / 100).toFixed(2)
-  }
-
   return (
     <div class="kpi-strip">
       <div class="kpi">

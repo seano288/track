@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Category } from '../domain/category.ts'
-import { periodForMonth, periodForRange } from '../domain/period.ts'
+import { periodForCustom, periodForMonth } from '../domain/period.ts'
 import type { Transaction } from '../domain/transaction.ts'
 import { UNCATEGORIZED } from '../domain/transaction.ts'
 import { summarizeTrend } from './summarize-trend.ts'
@@ -25,7 +25,7 @@ const categories: Category[] = [
 
 describe('summarizeTrend', () => {
   it('lists every month in the period, in ascending order', () => {
-    const { months } = summarizeTrend([], categories, periodForRange('2024-01-10', '2024-03-05'))
+    const { months } = summarizeTrend([], categories, periodForCustom('2024-01-10', '2024-03-05'))
 
     expect(months).toEqual(['2024-01', '2024-02', '2024-03'])
   })
@@ -37,7 +37,7 @@ describe('summarizeTrend', () => {
       transaction({ id: 't3', date: '2024-02-10', categoryId: 'category-groceries', amount: -700 }),
     ]
 
-    const { rows } = summarizeTrend(transactions, categories, periodForRange('2024-01-01', '2024-02-29'))
+    const { rows } = summarizeTrend(transactions, categories, periodForCustom('2024-01-01', '2024-02-29'))
 
     expect(rows).toEqual([
       { categoryId: 'category-groceries', categoryName: 'Groceries', amountsByMonth: { '2024-01': 1500, '2024-02': 700 } },
@@ -47,7 +47,7 @@ describe('summarizeTrend', () => {
   it('fills a zero for a month a category had no spend, within the period', () => {
     const transactions = [transaction({ id: 't1', date: '2024-01-05', categoryId: 'category-groceries', amount: -1000 })]
 
-    const { rows } = summarizeTrend(transactions, categories, periodForRange('2024-01-01', '2024-03-31'))
+    const { rows } = summarizeTrend(transactions, categories, periodForCustom('2024-01-01', '2024-03-31'))
 
     expect(rows).toEqual([
       {

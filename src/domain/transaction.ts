@@ -12,39 +12,29 @@ export const UNCATEGORIZED = 'Uncategorized'
 // imported Transactions without a separate field.
 export const MANUAL_ACCOUNT_ID = 'Manual'
 
-export interface Transaction {
-  id: string
-  accountId: string
+interface TransactionFields {
   date: string
   amount: number
   description: string
   direction: Direction
   categoryId: string
   note?: string
+}
+
+export interface Transaction extends TransactionFields {
+  id: string
+  accountId: string
   bankTransactionId?: string
 }
 
-export interface NewTransaction {
+export interface NewTransaction extends TransactionFields {
   accountId: string
-  date: string
-  amount: number
-  description: string
-  direction: Direction
-  categoryId: string
-  note?: string
   bankTransactionId?: string
 }
 
 // The fields a user types in when adding a Transaction by hand. accountId is
 // not here — it's assigned automatically to MANUAL_ACCOUNT_ID.
-export interface NewManualTransaction {
-  date: string
-  amount: number
-  description: string
-  direction: Direction
-  categoryId: string
-  note?: string
-}
+export interface NewManualTransaction extends TransactionFields {}
 
 export function isManualTransaction(transaction: Pick<Transaction, 'accountId'>): boolean {
   return transaction.accountId === MANUAL_ACCOUNT_ID

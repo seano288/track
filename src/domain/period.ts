@@ -40,7 +40,7 @@ export function periodForYear(year: number): Period {
   return { type: 'year', start: `${year}-01-01`, end: `${year}-12-31` }
 }
 
-export function periodForRange(start: string, end: string): Period {
+export function periodForCustom(start: string, end: string): Period {
   return { type: 'custom', start, end }
 }
 

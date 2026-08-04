@@ -204,11 +204,14 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
       </Show>
 
       <Show when={summary()}>
-        {(current) => (
-          <p>
-            Imported {current().newCount} new, {current().duplicateCount} already seen.
-          </p>
-        )}
+        {(current) => {
+          const total = current().newCount + current().duplicateCount
+          return (
+            <p>
+              {total} rows: {current().newCount} new, {current().duplicateCount} already seen.
+            </p>
+          )
+        }}
       </Show>
     </section>
   )

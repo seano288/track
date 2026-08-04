@@ -1,5 +1,6 @@
 import { For, createSignal } from 'solid-js'
 import type { Category } from './domain/category.ts'
+import { categoryName } from './domain/category.ts'
 import type { Rule } from './domain/rule.ts'
 
 export function Rules(props: {
@@ -10,10 +11,6 @@ export function Rules(props: {
 }) {
   const [pattern, setPattern] = createSignal('')
   const [categoryId, setCategoryId] = createSignal('')
-
-  function categoryName(id: string): string {
-    return props.categories.find((category) => category.id === id)?.name ?? id
-  }
 
   async function handleCreate(event: SubmitEvent) {
     event.preventDefault()
@@ -48,7 +45,7 @@ export function Rules(props: {
         <For each={props.rules}>
           {(rule) => (
             <li>
-              {rule.pattern} → {categoryName(rule.categoryId)}
+              {rule.pattern} → {categoryName(props.categories, rule.categoryId)}
               <button type="button" onClick={() => props.onDelete(rule.id)}>
                 Delete
               </button>

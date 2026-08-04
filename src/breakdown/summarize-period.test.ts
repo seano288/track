@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Category } from '../domain/category.ts'
-import { periodForMonth, periodForRange } from '../domain/period.ts'
+import { periodForCustom, periodForMonth } from '../domain/period.ts'
 import type { Transaction } from '../domain/transaction.ts'
 import { UNCATEGORIZED } from '../domain/transaction.ts'
 import { summarizePeriod } from './summarize-period.ts'
@@ -126,7 +126,7 @@ describe('summarizePeriod', () => {
       transaction({ id: 't3', date: '2024-01-21', amount: -4000 }),
     ]
 
-    const { cashFlow } = summarizePeriod(transactions, categories, periodForRange('2024-01-10', '2024-01-20'))
+    const { cashFlow } = summarizePeriod(transactions, categories, periodForCustom('2024-01-10', '2024-01-20'))
 
     expect(cashFlow.expenses).toBe(3000)
   })

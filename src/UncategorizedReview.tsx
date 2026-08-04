@@ -1,5 +1,6 @@
 import { For } from 'solid-js'
 import type { Category } from './domain/category.ts'
+import { formatAmount } from './domain/money.ts'
 import type { Transaction } from './domain/transaction.ts'
 import { UNCATEGORIZED } from './domain/transaction.ts'
 
@@ -10,10 +11,6 @@ export function UncategorizedReview(props: {
 }) {
   function uncategorized(): Transaction[] {
     return props.transactions.filter((transaction) => transaction.categoryId === UNCATEGORIZED)
-  }
-
-  function formatAmount(minorUnits: number): string {
-    return (minorUnits / 100).toFixed(2)
   }
 
   return (

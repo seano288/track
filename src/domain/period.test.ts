@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultPeriod, periodForMonth, periodForQuarter, periodForRange, periodForYear } from './period.ts'
+import { defaultPeriod, periodForCustom, periodForMonth, periodForQuarter, periodForYear } from './period.ts'
 
 describe('periodForMonth', () => {
   it('spans the first to last day of the given month', () => {
@@ -27,9 +27,9 @@ describe('periodForYear', () => {
   })
 })
 
-describe('periodForRange', () => {
+describe('periodForCustom', () => {
   it('uses the given start and end dates as-is', () => {
-    expect(periodForRange('2024-03-05', '2024-04-10')).toEqual({
+    expect(periodForCustom('2024-03-05', '2024-04-10')).toEqual({
       type: 'custom',
       start: '2024-03-05',
       end: '2024-04-10',
