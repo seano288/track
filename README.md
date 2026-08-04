@@ -25,4 +25,10 @@ Your app is ready to be deployed!
 
 ## Deployment
 
-Learn more about deploying your application with the [documentations](https://vite.dev/guide/static-deploy.html)
+Track is deployed to [GitHub Pages](https://seano288.github.io/track/) via the
+`.github/workflows/deploy.yml` workflow, which builds and publishes `main` on every
+push. See [ADR 0004](docs/adr/0004-github-pages-custom-domain.md) for why Pages was
+chosen over Netlify/Vercel.
+
+- [ ] Attach a custom domain (`CNAME` file + DNS records) once one is chosen — a
+      human decision, tracked separately from the initial Pages deploy.
