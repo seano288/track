@@ -38,6 +38,7 @@
   /* status (fixed, reserved meaning — never themed) */
   --status-good: #0ca30c;
   --status-warning: #fab219;
+  --status-warning-bg: #33280f;
   --status-critical: #d03b3b;
 
   /* fixed UI state badges — deliberately outside the categorical series
@@ -74,6 +75,40 @@ h1 {
   font-size: 16px;
   letter-spacing: 0;
   margin: 0 0 14px;
+}
+
+/* ---------- storage warning banner ---------- */
+
+.storage-warning {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 22px;
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+  border-bottom: 1px solid var(--border);
+}
+
+.storage-warning p {
+  margin: 0;
+  flex: 1;
+}
+
+.storage-warning button {
+  border: 1px solid var(--status-warning);
+  background: transparent;
+  color: var(--status-warning);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.storage-warning button:hover {
+  background: var(--status-warning);
+  color: var(--status-warning-bg);
 }
 
 /* ---------- app shell ---------- */
