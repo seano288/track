@@ -249,8 +249,108 @@ input::placeholder {
   color: var(--text-muted);
 }
 
+/* native select arrow: same box as input, custom chevron in place of the OS-default one.
+   Color is inlined as a literal (matches --text-muted) because a data: URL can't resolve
+   a CSS custom property — keep it in sync if --text-muted ever changes. */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238598b4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+
 input[type='checkbox'] {
-  width: auto;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+}
+
+input[type='checkbox']:hover {
+  border-color: var(--accent);
+}
+
+input[type='checkbox']:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 7px;
+  border: solid #052235;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* native file input: hide the raw control chrome, style its button like the rest of the toolbar */
+input[type='file'] {
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+/* kept as separate rules per pseudo-element: a comma-joined selector list is invalidated
+   whole when one browser doesn't recognize a member (same reason ::placeholder needs
+   per-vendor rules), so ::file-selector-button and ::-webkit-file-upload-button can't share a rule */
+input[type='file']::file-selector-button {
+  background: var(--panel-alt);
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 11px;
+  margin-right: 10px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+input[type='file']::-webkit-file-upload-button {
+  background: var(--panel-alt);
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 11px;
+  margin-right: 10px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: var(--panel-hover);
+  color: var(--text-h);
+}
+
+input[type='file']::-webkit-file-upload-button:hover {
+  background: var(--panel-hover);
+  color: var(--text-h);
+}
+
+input[type='file']:disabled::file-selector-button {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input[type='file']:disabled::-webkit-file-upload-button {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 button {
