@@ -54,7 +54,6 @@ function App() {
     const repository = await ruleRepository
     return repository.list()
   })
-  const [name, setName] = createSignal('')
   const [ruleHint, setRuleHint] = createSignal<{ description: string; categoryId: string } | null>(null)
   const [period, setPeriod] = createSignal(defaultPeriod())
   const summary = createMemo(() => summarizePeriod(transactions() ?? [], categories() ?? [], period()))
@@ -137,17 +136,6 @@ function App() {
 
   function handleDismissRuleHint() {
     setRuleHint(null)
-  }
-
-  async function handleCreate(event: SubmitEvent) {
-    event.preventDefault()
-    const trimmedName = name().trim()
-    if (!trimmedName) return
-
-    const repository = await accountRepository
-    await repository.create({ name: trimmedName })
-    setName('')
-    refetchAccounts()
   }
 
   async function handleDelete(id: string) {
@@ -233,15 +221,6 @@ function App() {
           <Show when={tab() === 'accounts'}>
             <section>
               <h1>Accounts</h1>
-              <form onSubmit={handleCreate}>
-                <input
-                  value={name()}
-                  onInput={(event) => setName(event.currentTarget.value)}
-                  placeholder="Account name"
-                  aria-label="Account name"
-                />
-                <button type="submit">Add account</button>
-              </form>
               <ul>
                 <For each={accounts()}>
                   {(account) => (
@@ -255,7 +234,11 @@ function App() {
                 </For>
               </ul>
             </section>
-            <ImportCsv accounts={accounts() ?? []} onImported={refetchTransactions} />
+            <ImportCsv
+              accounts={accounts() ?? []}
+              onImported={refetchTransactions}
+              onAccountCreated={refetchAccounts}
+            />
           </Show>
           <Show when={ruleHint()}>
             {(hint) => (

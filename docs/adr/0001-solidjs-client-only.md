@@ -35,3 +35,13 @@ alone keeps the row count off the DOM — and a charting library would add a dep
 without solving a problem the simple markup doesn't already handle. Revisit only if the
 transaction list needs column resizing/reordering/pinning, or charts need interactivity
 (tooltips, zoom) that hand-rolled markup can't reasonably grow into.
+
+**Revised again for the account combobox:** the Import section's account picker uses
+`@kobalte/core`'s headless Combobox, not hand-rolled markup. Unlike a virtualized list or
+a bar chart, a filterable combobox has real accessibility and interaction surface —
+listbox/typeahead keyboard navigation, focus management, and floating-UI positioning of
+the popover — that a hand-rolled `<input>` + `<div>` pairing would either get subtly wrong
+or take real effort to match. Kobalte is scoped to this one control (`AccountCombobox.tsx`);
+every other input in the app remains a plain, unstyled native element. Revisit only if
+another control needs the same kind of behavior and a second one-off adoption starts to
+look like an unstated pattern rather than an exception.

@@ -1,11 +1,13 @@
 import { For, Show, createSignal } from 'solid-js'
 import type { Account } from './domain/account.ts'
 import type { AmountMapping, ColumnMapping, DateFormat } from './domain/column-mapping.ts'
+import { AccountCombobox, type AccountSelection } from './AccountCombobox.tsx'
 import { deduplicateTransactions } from './csv/deduplicate-transactions.ts'
 import { guessColumnMapping } from './csv/guess-column-mapping.ts'
 import { parseCsv } from './csv/parse-csv.ts'
 import { parseTransactionRows } from './csv/parse-transactions.ts'
 import { applyRules } from './rules/apply-rules.ts'
+import { accountRepository } from './repositories/production-account-repository.ts'
 import { columnMappingRepository } from './repositories/production-column-mapping-repository.ts'
 import { ruleRepository } from './repositories/production-rule-repository.ts'
 import { transactionRepository } from './repositories/production-transaction-repository.ts'
@@ -14,7 +16,7 @@ const DATE_FORMATS: DateFormat[] = ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']
 const NO_ID_COLUMN = ''
 
 interface PendingImport {
-  accountId: string
+  account: AccountSelection
   headers: string[]
   rows: Record<string, string>[]
 }
@@ -24,8 +26,8 @@ interface ImportSummary {
   duplicateCount: number
 }
 
-export function ImportCsv(props: { accounts: Account[]; onImported: () => void }) {
-  const [accountId, setAccountId] = createSignal('')
+export function ImportCsv(props: { accounts: Account[]; onImported: () => void; onAccountCreated: () => void }) {
+  const [accountSelection, setAccountSelection] = createSignal<AccountSelection | undefined>(undefined)
   const [pending, setPending] = createSignal<PendingImport | undefined>(undefined)
   const [dateColumn, setDateColumn] = createSignal('')
   const [amountShape, setAmountShape] = createSignal<AmountMapping['shape']>('single')
@@ -52,28 +54,47 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
   async function handleFileSelected(event: Event & { currentTarget: HTMLInputElement }) {
     const file = event.currentTarget.files?.[0]
     event.currentTarget.value = ''
-    const selectedAccountId = accountId()
-    if (!file || !selectedAccountId) return
+    const selection = accountSelection()
+    if (!file || !selection) return
 
     const text = await file.text()
     const { headers, rows } = parseCsv(text)
-    const repository = await columnMappingRepository
-    const existing = await repository.get(selectedAccountId)
 
-    if (existing) {
-      await importRows(rows, existing)
-      return
+    if (selection.kind === 'existing') {
+      const repository = await columnMappingRepository
+      const existing = await repository.get(selection.id)
+      if (existing) {
+        await importRows(rows, existing)
+        return
+      }
     }
 
     const guess = guessColumnMapping(headers)
     setDateColumn(guess.dateColumn ?? '')
-    setAmountShape('single')
-    setAmountColumn(guess.amountColumn ?? '')
-    setDebitColumn('')
-    setCreditColumn('')
+    if (guess.amount.shape === 'debit-credit') {
+      setAmountShape('debit-credit')
+      setDebitColumn(guess.amount.debitColumn)
+      setCreditColumn(guess.amount.creditColumn)
+      setAmountColumn('')
+    } else {
+      setAmountShape('single')
+      setAmountColumn(guess.amount.amountColumn ?? '')
+      setDebitColumn('')
+      setCreditColumn('')
+    }
     setDescriptionColumn(guess.descriptionColumn ?? '')
     setIdColumn(NO_ID_COLUMN)
-    setPending({ accountId: selectedAccountId, headers, rows })
+    setPending({ account: selection, headers, rows })
+  }
+
+  async function resolveAccountId(account: AccountSelection): Promise<string> {
+    if (account.kind === 'existing') return account.id
+
+    const repository = await accountRepository
+    const created = await repository.create({ name: account.name })
+    setAccountSelection({ kind: 'existing', id: created.id, name: created.name })
+    props.onAccountCreated()
+    return created.id
   }
 
   async function handleConfirmMapping(event: SubmitEvent) {
@@ -88,8 +109,9 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
     if (amount.shape === 'single' && !amount.amountColumn) return
     if (amount.shape === 'debit-credit' && (!amount.debitColumn || !amount.creditColumn)) return
 
+    const accountId = await resolveAccountId(current.account)
     const mapping: ColumnMapping = {
-      accountId: current.accountId,
+      accountId,
       dateColumn: dateColumn(),
       amount,
       descriptionColumn: descriptionColumn(),
@@ -107,18 +129,13 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
       <h1>Import</h1>
       <label>
         Account
-        <select value={accountId()} onInput={(event) => setAccountId(event.currentTarget.value)}>
-          <option value="">Select an account</option>
-          <For each={props.accounts}>
-            {(account) => <option value={account.id}>{account.name}</option>}
-          </For>
-        </select>
+        <AccountCombobox accounts={props.accounts} value={accountSelection()} onChange={setAccountSelection} />
       </label>
       <input
         type="file"
         accept=".csv"
         aria-label="CSV file"
-        disabled={!accountId()}
+        disabled={!accountSelection()}
         onChange={handleFileSelected}
       />
 
@@ -204,14 +221,12 @@ export function ImportCsv(props: { accounts: Account[]; onImported: () => void }
       </Show>
 
       <Show when={summary()}>
-        {(current) => {
-          const total = current().newCount + current().duplicateCount
-          return (
-            <p>
-              {total} rows: {current().newCount} new, {current().duplicateCount} already seen.
-            </p>
-          )
-        }}
+        {(current) => (
+          <p>
+            {current().newCount + current().duplicateCount} rows: {current().newCount} new,{' '}
+            {current().duplicateCount} already seen.
+          </p>
+        )}
       </Show>
     </section>
   )
