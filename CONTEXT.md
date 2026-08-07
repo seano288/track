@@ -26,7 +26,9 @@ _Avoid_: Balance, net worth
 
 **Account**:
 A single source of transactions the user imports from — one checking account, one
-credit card, etc. Each account has its own CSV format. The user has about six.
+credit card, etc. Each account has its own CSV format. The user has about six. Comes
+into existence at import time, not through a standalone step — naming a new account
+while importing a CSV creates it.
 _Avoid_: Source, bank, feed
 
 **Category**:
