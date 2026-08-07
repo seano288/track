@@ -1,4 +1,4 @@
-export type PeriodType = 'month' | 'quarter' | 'year' | 'custom'
+export type PeriodType = 'month' | 'quarter' | 'year' | 'year-to-date' | 'custom'
 
 // A date range that scopes the Category breakdown and cash-flow summary.
 // start/end are ISO dates (YYYY-MM-DD), both inclusive.
@@ -15,6 +15,10 @@ export function pad2(value: number): string {
 // start/end are both inclusive, so a plain string comparison is sufficient.
 export function isDateInPeriod(date: string, period: Period): boolean {
   return date >= period.start && date <= period.end
+}
+
+export function periodsEqual(a: Period, b: Period): boolean {
+  return a.type === b.type && a.start === b.start && a.end === b.end
 }
 
 function lastDayOfMonth(year: number, month: number): number {
@@ -44,7 +48,21 @@ export function periodForCustom(start: string, end: string): Period {
   return { type: 'custom', start, end }
 }
 
-export function defaultPeriod(referenceDate: Date = new Date()): Period {
+export function periodForThisMonth(referenceDate: Date = new Date()): Period {
   const yearMonth = `${referenceDate.getFullYear()}-${pad2(referenceDate.getMonth() + 1)}`
   return periodForMonth(yearMonth)
+}
+
+export function periodForLastMonth(referenceDate: Date = new Date()): Period {
+  return periodForThisMonth(new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1))
+}
+
+export function periodForYearToDate(referenceDate: Date = new Date()): Period {
+  const year = referenceDate.getFullYear()
+  const end = `${year}-${pad2(referenceDate.getMonth() + 1)}-${pad2(referenceDate.getDate())}`
+  return { type: 'year-to-date', start: `${year}-01-01`, end }
+}
+
+export function defaultPeriod(referenceDate: Date = new Date()): Period {
+  return periodForThisMonth(referenceDate)
 }

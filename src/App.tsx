@@ -12,7 +12,7 @@ import { summarizeTrend } from './breakdown/summarize-trend.ts'
 import { defaultPeriod } from './domain/period.ts'
 import type { NewManualTransaction, TransactionEdits } from './domain/transaction.ts'
 import { ImportCsv } from './ImportCsv.tsx'
-import { PeriodPicker } from './PeriodPicker.tsx'
+import { PeriodControls } from './PeriodControls.tsx'
 import { Rules } from './Rules.tsx'
 import { RulePromptHint } from './RulePromptHint.tsx'
 import { StorageWarningBanner } from './StorageWarningBanner.tsx'
@@ -179,7 +179,7 @@ function App() {
         </aside>
         <main class="main">
           <Show when={tab() === 'overview'}>
-            <PeriodPicker period={period()} onChange={setPeriod} />
+            <PeriodControls period={period()} onChange={setPeriod} />
             <CashFlowSummary cashFlow={summary().cashFlow} />
             <CategoryBreakdown breakdown={summary().breakdown} categories={categories() ?? []} />
           </Show>

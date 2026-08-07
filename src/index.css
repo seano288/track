@@ -490,6 +490,19 @@ td {
   margin-bottom: 14px;
 }
 
+.period-controls {
+  margin-bottom: 14px;
+}
+
+.period-quick-buttons {
+  margin-bottom: 10px;
+}
+
+.period-quick-buttons button.active {
+  background: var(--accent);
+  color: #052235;
+}
+
 /* ---------- rule hint toast ---------- */
 
 [role='status'] {

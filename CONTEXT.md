@@ -41,8 +41,11 @@ automatically on import — e.g. description contains "WHOLEFDS" → Groceries.
 _Avoid_: Filter, matcher
 
 **Period**:
-The date range (month, quarter, year, or a custom range) that scopes the Category
-breakdown and cash-flow summary. Both endpoints are inclusive.
+The date range (month, quarter, year, year-to-date, or a custom range) that scopes the
+Category breakdown and cash-flow summary. Both endpoints are inclusive. Year-to-date is
+a rolling range — January 1 of the current year through today — distinct from year (the
+full January 1–December 31 span) and from custom (an arbitrary stored pair of dates the
+user picked).
 _Avoid_: Range, timeframe, window
 
 **Uncategorized**:
