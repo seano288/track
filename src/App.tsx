@@ -17,7 +17,6 @@ import { Rules } from './Rules.tsx'
 import { RulePromptHint } from './RulePromptHint.tsx'
 import { StorageWarningBanner } from './StorageWarningBanner.tsx'
 import { TransactionList } from './TransactionList.tsx'
-import { UncategorizedReview } from './UncategorizedReview.tsx'
 import { accountRepository } from './repositories/production-account-repository.ts'
 import { categoryRepository } from './repositories/production-category-repository.ts'
 import { ruleRepository } from './repositories/production-rule-repository.ts'
@@ -188,16 +187,12 @@ function App() {
           </Show>
           <Show when={tab() === 'transactions'}>
             <AddTransaction categories={categories() ?? []} onAdd={handleAddTransaction} />
-            <UncategorizedReview
-              transactions={transactions() ?? []}
-              categories={categories() ?? []}
-              onCategorize={handleCategorizeTransaction}
-            />
             <TransactionList
               transactions={transactions() ?? []}
               accounts={accounts() ?? []}
               categories={categories() ?? []}
               onEdit={handleEditTransaction}
+              onCategorize={handleCategorizeTransaction}
             />
           </Show>
           <Show when={tab() === 'categories'}>

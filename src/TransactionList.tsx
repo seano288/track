@@ -25,6 +25,7 @@ export function TransactionList(props: {
   accounts: Account[]
   categories: Category[]
   onEdit: (transactionId: string, edits: TransactionEdits) => void | Promise<void>
+  onCategorize: (transactionId: string, categoryId: string) => void | Promise<void>
 }) {
   const [editingId, setEditingId] = createSignal<string | undefined>(undefined)
   const [date, setDate] = createSignal('')
@@ -237,7 +238,26 @@ export function TransactionList(props: {
                                   {(note) => <span class="tx-note"> — {note()}</span>}
                                 </Show>
                               </span>
-                              <span class={categoryPill(transaction()).className}>{categoryPill(transaction()).label}</span>
+                              <Show
+                                when={transaction().categoryId === UNCATEGORIZED}
+                                fallback={
+                                  <span class={categoryPill(transaction()).className}>{categoryPill(transaction()).label}</span>
+                                }
+                              >
+                                <select
+                                  value=""
+                                  aria-label={`Assign category to ${transaction().description}`}
+                                  onInput={(event) => {
+                                    const value = event.currentTarget.value
+                                    if (value) props.onCategorize(transaction().id, value)
+                                  }}
+                                >
+                                  <option value="">Assign a category</option>
+                                  <For each={props.categories}>
+                                    {(category) => <option value={category.id}>{category.name}</option>}
+                                  </For>
+                                </select>
+                              </Show>
                               <span class="tx-amount" classList={{ income: transaction().direction === 'income' }}>
                                 {formatAmount(transaction().amount)}
                               </span>
