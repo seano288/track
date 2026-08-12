@@ -7,6 +7,7 @@
  * enough: the whole dataset is small enough to hold in memory, and it makes
  * saves atomic, so a crash can't leave half-written state.
  */
+import { DEFAULT_CATEGORIES } from "./categories";
 import type { Account, Category, Rule, Transaction } from "./types";
 
 const DB_NAME = "track";
@@ -101,7 +102,20 @@ export function migrate(raw: unknown): PersistedState | null {
     version: CURRENT_VERSION,
     accounts: state.accounts,
     transactions: state.transactions,
-    categories: state.categories,
+    categories: withMissingDefaults(state.categories),
     rules: state.rules,
   };
+}
+
+/**
+ * Top up the category list with any default this save predates.
+ *
+ * A save written before Hidden shipped has no way to offer it otherwise, and the
+ * transactions themselves need no migration — they only ever store a category id.
+ * Existing entries are left exactly as they are, so a rename of your own sticks.
+ */
+function withMissingDefaults(categories: Category[]): Category[] {
+  const present = new Set(categories.map((c) => c.id));
+  const missing = DEFAULT_CATEGORIES.filter((c) => !present.has(c.id));
+  return missing.length === 0 ? categories : [...categories, ...missing];
 }

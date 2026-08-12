@@ -327,6 +327,9 @@ export function buildTransactions(
       description,
       amountCents,
       ...(bankCategory ? { bankCategory } : {}),
+      // Kept verbatim: the list can then show what the bank actually said, next
+      // to whatever this app made of it.
+      raw: row,
     });
   }
 

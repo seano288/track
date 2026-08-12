@@ -236,17 +236,24 @@ export function MonthlyFlowChart(props: { data: MonthTotal[] }) {
   );
 }
 
-/** The monthly chart's table twin, newest month first. */
-export function MonthTable(props: { data: MonthTotal[] }) {
+/**
+ * The monthly chart's table twin, newest month first. `spendOnly` drops the
+ * income columns, which are structurally zero for a single category's trend.
+ */
+export function MonthTable(props: { data: MonthTotal[]; spendOnly?: boolean }) {
   return (
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>Month</th>
-            <th class="num">Money in</th>
-            <th class="num">Money out</th>
-            <th class="num">Net</th>
+            <Show when={!props.spendOnly}>
+              <th class="num">Money in</th>
+            </Show>
+            <th class="num">{props.spendOnly ? "Spent" : "Money out"}</th>
+            <Show when={!props.spendOnly}>
+              <th class="num">Net</th>
+            </Show>
           </tr>
         </thead>
         <tbody>
@@ -254,9 +261,13 @@ export function MonthTable(props: { data: MonthTotal[] }) {
             {(d) => (
               <tr>
                 <td>{formatMonth(d.month)}</td>
-                <td class="num">{formatMoney(d.inCents)}</td>
+                <Show when={!props.spendOnly}>
+                  <td class="num">{formatMoney(d.inCents)}</td>
+                </Show>
                 <td class="num">{formatMoney(d.outCents)}</td>
-                <td class="num">{formatMoney(d.netCents)}</td>
+                <Show when={!props.spendOnly}>
+                  <td class="num">{formatMoney(d.netCents)}</td>
+                </Show>
               </tr>
             )}
           </For>
@@ -334,7 +345,6 @@ export function SpendingDonut(props: {
   /** Every category, for the legend tail. */
   all: CategoryTotal[];
   hero: { label: string; value: string; meta?: JSX.Element };
-  stats: { label: string; value: string; tone?: "good" | "critical" }[];
   selected?: string;
   onSelect: (categoryId: string) => void;
 }) {
@@ -447,22 +457,6 @@ export function SpendingDonut(props: {
                 </Show>
               </div>
             </div>
-
-            <div class="donut-stats">
-              <For each={props.stats}>
-                {(stat) => (
-                  <div class="donut-stat">
-                    <span class="label">{stat.label}</span>
-                    <span
-                      class="value"
-                      style={stat.tone ? { color: `var(--${stat.tone})` } : undefined}
-                    >
-                      {stat.value}
-                    </span>
-                  </div>
-                )}
-              </For>
-            </div>
           </div>
 
           {/* The legend is the breakdown: name, amount and share as text, so no
@@ -488,8 +482,24 @@ export function SpendingDonut(props: {
             </For>
 
             <Show when={tailRows().length > 0}>
-              <button class="btn btn-sm cat-more" onClick={() => setShowAll((v) => !v)}>
-                {showAll() ? "Hide" : "Show"} the {tailRows().length} smaller categories
+              {/* A disclosure, not a labelled button: the caret pivots to point at
+                  what it revealed. */}
+              <button
+                class="cat-more"
+                aria-expanded={showAll()}
+                onClick={() => setShowAll((v) => !v)}
+              >
+                <svg class="caret" viewBox="0 0 10 10" aria-hidden="true">
+                  <path
+                    d="M3.5 1.5 L7 5 L3.5 8.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                {tailRows().length} smaller categories
               </button>
               <Show when={showAll()}>
                 <For each={tailRows()}>

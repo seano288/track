@@ -23,7 +23,8 @@ import {
   saveState,
   type PersistedState,
 } from "./lib/db";
-import { DEFAULT_CATEGORIES, categorize, seedRules, suggestPattern } from "./lib/categories";
+import { DEFAULT_CATEGORIES, categorize, seedRules } from "./lib/categories";
+import { bumpMonth } from "./lib/dates";
 import { buildTransactions } from "./lib/import-map";
 import { latestDate } from "./lib/summary";
 import type { Account, ColumnMapping, Rule, Transaction } from "./lib/types";
@@ -49,8 +50,12 @@ interface AppActions {
     accountName?: string;
     accountKind?: Account["kind"];
   }): ImportOutcome;
-  setCategory(transactionId: string, categoryId: string, alsoCreateRule?: boolean): void
+  setCategory(transactionId: string, categoryId: string): void
   setCategoryForMany(transactionIds: string[], categoryId: string): void;
+  /** Nudge a transaction into the next (`1`) or previous (`-1`) month. */
+  shiftMonth(transactionId: string, delta: 1 | -1): void;
+  /** Put a nudged transaction back on the date it was imported with. */
+  restoreDate(transactionId: string): void;
   addRule(pattern: string, categoryId: string): void;
   deleteRule(ruleId: string): void;
   /** Re-run rules over every transaction, leaving manual choices alone. */
@@ -72,6 +77,11 @@ interface AppContextValue {
 }
 
 const AppContext = createContext<AppContextValue>();
+
+/** Newest first — the order both the list and the charts want. */
+function newestFirst(a: Transaction, b: Transaction): number {
+  return a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
+}
 
 function emptyState(): PersistedState {
   return {
@@ -166,8 +176,7 @@ export function AppProvider(props: { children: JSX.Element }) {
 
       if (fresh.length > 0) {
         setState("transactions", (transactions) =>
-          // Newest first — the order the list and charts both want.
-          [...transactions, ...fresh].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+          [...transactions, ...fresh].sort(newestFirst),
         );
       }
       persist();
@@ -183,10 +192,9 @@ export function AppProvider(props: { children: JSX.Element }) {
       };
     },
 
-    setCategory(transactionId, categoryId, alsoCreateRule = false) {
+    setCategory(transactionId, categoryId) {
       const index = state.transactions.findIndex((t) => t.id === transactionId);
       if (index === -1) return;
-      const description = state.transactions[index]!.description;
 
       setState("transactions", index, (t) => ({
         ...t,
@@ -194,11 +202,6 @@ export function AppProvider(props: { children: JSX.Element }) {
         // Marked manual so `reapplyRules` never overwrites a deliberate choice.
         categorySource: "manual",
       }));
-
-      if (alsoCreateRule) {
-        const pattern = suggestPattern(description);
-        if (pattern) actions.addRule(pattern, categoryId);
-      }
       persist();
     },
 
@@ -214,6 +217,46 @@ export function AppProvider(props: { children: JSX.Element }) {
             }
           }
         }),
+      );
+      persist();
+    },
+
+    shiftMonth(transactionId, delta) {
+      const current = state.transactions.find((t) => t.id === transactionId);
+      if (!current) return;
+
+      const imported = current.originalDate ?? current.date;
+      const date = bumpMonth(current.date, delta);
+
+      setState("transactions", (transactions) =>
+        transactions
+          .map((t) => {
+            if (t.id !== transactionId) return t;
+            const moved = { ...t, date };
+            // Back where it started is no longer a move, so stop saying it was.
+            if (date === imported) delete moved.originalDate;
+            else moved.originalDate = imported;
+            return moved;
+          })
+          .sort(newestFirst),
+      );
+      persist();
+    },
+
+    restoreDate(transactionId) {
+      const current = state.transactions.find((t) => t.id === transactionId);
+      if (!current?.originalDate) return;
+
+      const date = current.originalDate;
+      setState("transactions", (transactions) =>
+        transactions
+          .map((t) => {
+            if (t.id !== transactionId) return t;
+            const restored = { ...t, date };
+            delete restored.originalDate;
+            return restored;
+          })
+          .sort(newestFirst),
       );
       persist();
     },

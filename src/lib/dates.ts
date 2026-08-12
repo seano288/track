@@ -141,6 +141,19 @@ export function monthRange(startMonth: string, endMonth: string): string[] {
   return out;
 }
 
+/**
+ * Nudge a date across a month boundary — the smallest move that changes its
+ * month, so `+1` from Jul 31 is Aug 1 and `-1` back is Jul 31 again.
+ *
+ * This is for charges that drifted: a payment due on the 1st that the bank
+ * posted on the 31st because the 1st was a weekend belongs to the next month's
+ * spending, not to a month it only touched by two days.
+ */
+export function bumpMonth(iso: IsoDate, delta: 1 | -1): IsoDate {
+  const firstOfMonth = `${monthOf(iso)}-01`;
+  return delta > 0 ? `${addMonths(monthOf(iso), 1)}-01` : addDays(firstOfMonth, -1);
+}
+
 /** Shift an ISO date by whole days, via UTC so DST can't move the result. */
 export function addDays(iso: IsoDate, delta: number): IsoDate {
   const [y, m, d] = iso.split("-").map(Number);

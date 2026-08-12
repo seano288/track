@@ -5,9 +5,13 @@
  * excluded from both spending and income. Paying a credit card from checking
  * moves money without spending it, and the card's own rows already record the
  * purchases — counting the payment too would double the total.
+ *
+ * A `hidden` category is stronger still: those rows are dropped by `applyFilter`
+ * before any of this sees them, so nothing here has to know about them.
  */
-import { monthOf, monthRange, today, addMonths, type IsoDate } from "./dates";
-import type { Category, Transaction } from "./types";
+import { formatDate, monthOf, monthRange, today, addMonths, type IsoDate } from "./dates";
+import { formatMoney } from "./money";
+import type { Account, Category, CategoryGroup, Transaction } from "./types";
 
 export interface Period {
   id: string;
@@ -67,26 +71,72 @@ export interface Filter {
   period: { start: IsoDate; end: IsoDate };
   accountIds?: string[];
   categoryIds?: string[];
-  /** Case-insensitive substring on description; `cost` matches `COSTCO`. */
+  /**
+   * Case-insensitive substring across every field the row shows: `cost` matches
+   * the payee `COSTCO`, `groc` its category, `aug 15` its date, `22.46` its
+   * amount. Needs `categories` and `accounts` to see the labels.
+   */
   query?: string;
   /** `out` keeps only money leaving, `in` only money arriving. */
   direction?: "all" | "out" | "in";
+  /**
+   * Category groups to drop. Reports pass `hidden`; the transaction list adds
+   * `transfer`, which is noise in a list of spending until you go looking for it.
+   */
+  excludeGroups?: CategoryGroup[];
+  /** The labels `query` and `excludeGroups` are resolved against. */
+  categories?: Category[];
+  accounts?: Account[];
 }
 
 export function applyFilter(transactions: Transaction[], filter: Filter): Transaction[] {
   const query = filter.query?.trim().toLowerCase();
   const accounts = filter.accountIds?.length ? new Set(filter.accountIds) : null;
   const categories = filter.categoryIds?.length ? new Set(filter.categoryIds) : null;
+  const dropped = excludedCategoryIds(filter);
+  const rowText = query ? searchableText(filter) : null;
 
   return transactions.filter((t) => {
     if (t.date < filter.period.start || t.date > filter.period.end) return false;
     if (accounts && !accounts.has(t.accountId)) return false;
     if (categories && !categories.has(t.categoryId)) return false;
+    if (dropped?.has(t.categoryId)) return false;
     if (filter.direction === "out" && t.amountCents >= 0) return false;
     if (filter.direction === "in" && t.amountCents <= 0) return false;
-    if (query && !t.description.toLowerCase().includes(query)) return false;
+    if (rowText && !rowText(t).includes(query!)) return false;
     return true;
   });
+}
+
+function excludedCategoryIds(filter: Filter): Set<string> | null {
+  if (!filter.excludeGroups?.length) return null;
+  const groups = new Set<CategoryGroup>(filter.excludeGroups);
+  const ids = (filter.categories ?? []).filter((c) => groups.has(c.group)).map((c) => c.id);
+  return ids.length > 0 ? new Set(ids) : null;
+}
+
+/**
+ * A row rendered as one lowercased string, so searching matches what is on
+ * screen rather than only the payee — including the date and amount in the form
+ * the table prints them, because that is how you'd type them.
+ */
+function searchableText(filter: Filter): (t: Transaction) => string {
+  // Missing labels read as empty rather than as "Uncategorized", so a search for
+  // that word finds the rows that really are uncategorised.
+  const categoryNames = new Map((filter.categories ?? []).map((c) => [c.id, c.name]));
+  const accountNames = new Map((filter.accounts ?? []).map((a) => [a.id, a.name]));
+
+  return (t) =>
+    [
+      t.date,
+      formatDate(t.date),
+      t.description,
+      accountNames.get(t.accountId) ?? "",
+      categoryNames.get(t.categoryId) ?? "",
+      formatMoney(t.amountCents),
+    ]
+      .join(" ")
+      .toLowerCase();
 }
 
 export interface Totals {
@@ -204,12 +254,16 @@ export function byMonth(transactions: Transaction[], categories: Category[]): Mo
   });
 }
 
-/** Spending in one category per month — the drill-down behind a bar. */
+/**
+ * Spending per month in one category, or in a set of them — the folded "Other"
+ * wedge stands for several categories at once.
+ */
 export function categoryByMonth(
   transactions: Transaction[],
-  categoryId: string,
+  categoryId: string | string[],
 ): MonthTotal[] {
-  const rows = transactions.filter((t) => t.categoryId === categoryId);
+  const wanted = new Set(Array.isArray(categoryId) ? categoryId : [categoryId]);
+  const rows = transactions.filter((t) => wanted.has(t.categoryId));
   if (rows.length === 0) return [];
   const sums = new Map<string, number>();
   for (const t of rows) {

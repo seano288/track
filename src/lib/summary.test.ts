@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CATEGORIES, categorize, seedRules, suggestPattern } from "./categories";
+import { DEFAULT_CATEGORIES, HIDDEN, categorize, seedRules, suggestPattern } from "./categories";
 import {
   OTHER_SLICE_ID,
   applyFilter,
@@ -10,7 +10,8 @@ import {
   spendingByCategory,
   totals,
 } from "./summary";
-import type { Transaction } from "./types";
+import { bumpMonth } from "./dates";
+import type { Account, Transaction } from "./types";
 
 const categories = DEFAULT_CATEGORIES;
 
@@ -31,6 +32,29 @@ function txn(
     categorySource: "rule",
   };
 }
+
+describe("bumpMonth", () => {
+  it("moves the smallest distance that changes the month", () => {
+    expect(bumpMonth("2026-07-31", 1)).toBe("2026-08-01");
+    expect(bumpMonth("2026-08-01", -1)).toBe("2026-07-31");
+  });
+
+  it("round-trips, so a nudge is undoable", () => {
+    expect(bumpMonth(bumpMonth("2026-07-31", 1), -1)).toBe("2026-07-31");
+    expect(bumpMonth(bumpMonth("2026-02-01", -1), 1)).toBe("2026-02-01");
+  });
+
+  it("crosses a year boundary", () => {
+    expect(bumpMonth("2026-12-30", 1)).toBe("2027-01-01");
+    expect(bumpMonth("2026-01-02", -1)).toBe("2025-12-31");
+  });
+
+  it("moves a mid-month date to the boundary, not to the same day", () => {
+    // Nudging is for drift, so the result is always adjacent to the old month.
+    expect(bumpMonth("2026-08-15", 1)).toBe("2026-09-01");
+    expect(bumpMonth("2026-08-15", -1)).toBe("2026-07-31");
+  });
+});
 
 describe("totals", () => {
   it("reports money in and out as positive numbers, netting to their difference", () => {
@@ -137,6 +161,50 @@ describe("applyFilter", () => {
       direction: "in",
     });
     expect(inbound).toHaveLength(1);
+  });
+
+  it("searches every field the row shows, not just the payee", () => {
+    const accounts: Account[] = [
+      { id: "acct", name: "Schwab Checking", kind: "bank", createdAt: "seed" },
+    ];
+    const search = (query: string) =>
+      applyFilter(rows, {
+        period: { start: "1900-01-01", end: "2200-01-01" },
+        query,
+        categories,
+        accounts,
+      }).map((t) => t.description);
+
+    expect(search("costco")).toEqual(["COSTCO WHSE"]);        // payee
+    expect(search("income")).toEqual(["PAYCHECK"]);           // category name
+    expect(search("schwab")).toHaveLength(3);                 // account name
+    expect(search("$20.00")).toEqual(["TRADER JOE S"]);       // amount as printed
+    expect(search("aug 20")).toEqual(["PAYCHECK"]);           // date as printed
+    expect(search("2026-07")).toEqual(["COSTCO WHSE"]);       // date as stored
+  });
+
+  it("drops excluded groups, and keeps them when not asked to", () => {
+    const withAside = [
+      ...rows,
+      txn("2026-08-02", "CITIBANK CRDT PMT", -30_000, "transfer"),
+      txn("2026-08-03", "REIMBURSED FLIGHT", -40_000, HIDDEN),
+    ];
+    const period = { start: "1900-01-01", end: "2200-01-01" };
+
+    // What the reports see: hidden gone, transfers still there to be netted out.
+    const reports = applyFilter(withAside, { period, categories, excludeGroups: ["hidden"] });
+    expect(reports).toHaveLength(4);
+    expect(reports.some((t) => t.categoryId === "transfer")).toBe(true);
+
+    // What the list shows by default.
+    const list = applyFilter(withAside, {
+      period,
+      categories,
+      excludeGroups: ["transfer", "hidden"],
+    });
+    expect(list).toHaveLength(3);
+
+    expect(applyFilter(withAside, { period, categories })).toHaveLength(5);
   });
 });
 

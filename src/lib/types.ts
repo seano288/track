@@ -27,17 +27,27 @@ export interface Transaction {
   categorySource: "manual" | "rule" | "bank" | "none";
   /** The bank's own category label, kept for reference when it supplied one. */
   bankCategory?: string;
+  /**
+   * The imported date, kept only while `date` has been nudged into another
+   * month — so the raw record stays visible and the nudge can be undone.
+   */
+  originalDate?: IsoDate;
+  /** The CSV row this was read from, verbatim, so the source stays inspectable. */
+  raw?: string[];
   notes?: string;
 }
+
+/**
+ * `spending` and `income` are summarised; `transfer` is excluded from both so
+ * moving money between your own accounts isn't counted as expense; `hidden`
+ * leaves a transaction out of every report and out of the list by default.
+ */
+export type CategoryGroup = "spending" | "income" | "transfer" | "hidden";
 
 export interface Category {
   id: string;
   name: string;
-  /**
-   * `spending` and `income` are summarised; `transfer` is excluded from both
-   * so moving money between your own accounts isn't counted as expense.
-   */
-  group: "spending" | "income" | "transfer";
+  group: CategoryGroup;
 }
 
 /** A case-insensitive substring match on the description. */

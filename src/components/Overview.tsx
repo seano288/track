@@ -1,10 +1,11 @@
 /**
  * The Overview — the whole app, really.
  *
- * One filter row at the top scopes everything below it: the donut and its
- * headline figures, the monthly chart, and the transaction list at the bottom.
- * Picking a wedge or a category row narrows the list too, and every part of that
- * state lives in the URL, so any view can be linked to or reloaded.
+ * One filter row at the top scopes everything below it: the chart card and the
+ * transaction list. The card has three views — the donut, a trend, and the same
+ * numbers as a table — and picking a wedge or a category row filters the list.
+ * Every part of that state lives in the URL, so any view can be linked to or
+ * reloaded.
  */
 import { For, Match, Show, Switch, createMemo } from "solid-js";
 import { useApp } from "../store";
@@ -23,6 +24,7 @@ import {
   totals,
 } from "../lib/summary";
 import { urlParam } from "../lib/url-state";
+import type { CategoryGroup } from "../lib/types";
 import {
   CategoryTable,
   CategoryTrend,
@@ -32,6 +34,19 @@ import {
 } from "./Charts";
 import { TransactionList } from "./TransactionList";
 
+const VIEWS = [
+  ["category", "Category"],
+  ["trend", "Trend"],
+  ["breakdown", "Breakdown"],
+] as const;
+
+/**
+ * Hidden transactions never reach a report — dropping them here means every
+ * total, chart, and delta below is computed from a set they aren't in, rather
+ * than each aggregation having to remember to skip them.
+ */
+const NOT_IN_REPORTS: CategoryGroup[] = ["hidden"];
+
 export function Overview() {
   const { state, latest } = useApp();
 
@@ -40,10 +55,7 @@ export function Overview() {
   const [customEnd, setCustomEnd] = urlParam("to", "");
   const [accountId, setAccountId] = urlParam("account", "all");
   const [selected, setSelected] = urlParam("category", "");
-  // Which chart the card is showing, and whether it's showing its table twin.
-  const [view, setView] = urlParam("view", "pie");
-  const [tableParam, setTableParam] = urlParam("table", "");
-  const showTable = () => tableParam() === "1";
+  const [view, setView] = urlParam("view", "category");
 
   const presets = createMemo(() => periodPresets(latest()));
   const period = createMemo(() =>
@@ -53,6 +65,8 @@ export function Overview() {
   const filter = createMemo(() => ({
     period: period(),
     accountIds: accountId() === "all" ? undefined : [accountId()],
+    excludeGroups: NOT_IN_REPORTS,
+    categories: state.categories,
   }));
 
   const rows = createMemo(() => applyFilter(state.transactions, filter()));
@@ -99,14 +113,17 @@ export function Overview() {
   const selectedName = createMemo(() => {
     const id = selected();
     if (!id) return "";
-    if (id === OTHER_SLICE_ID) return "Other";
+    if (id === OTHER_SLICE_ID) return "Everything else";
     return state.categories.find((c) => c.id === id)?.name ?? "";
   });
 
+  /**
+   * What the trend and the breakdown plot: the selected category month by month
+   * when there is one, otherwise money in and out for every month.
+   */
   const trend = createMemo(() => {
-    const id = selected();
-    if (!id || id === OTHER_SLICE_ID) return undefined;
-    return categoryByMonth(rows(), id);
+    const ids = selectedIds();
+    return ids ? categoryByMonth(rows(), ids) : undefined;
   });
 
   const uncategorizedCount = createMemo(
@@ -186,81 +203,66 @@ export function Overview() {
       </div>
 
       <Show when={uncategorizedCount() > 0}>
-        <div class="notice">
-          {uncategorizedCount()} transaction{uncategorizedCount() === 1 ? "" : "s"} in this
-          period {uncategorizedCount() === 1 ? "isn't" : "aren't"} categorised yet, so they
-          sit under Uncategorized.{" "}
-          <button class="btn btn-sm" style={{ "margin-left": "4px" }} onClick={showUncategorized}>
-            Categorise them
+        <div class="notice row">
+          <span>
+            {uncategorizedCount()} uncategorised transaction
+            {uncategorizedCount() === 1 ? "" : "s"}
+          </span>
+          <button class="btn btn-sm" onClick={showUncategorized}>
+            Categorise
           </button>
         </div>
       </Show>
 
-      {/* One card, two views: the donut by default, the monthly flow behind a
-          toggle, and either one's table twin behind the same Table button. */}
+      {/* One card, three views of the same filtered rows. */}
       <div class="card">
+        {/* The period's two other figures live up here, so they read the same in
+            every view — total spent stays in the donut's hole. */}
         <div class="card-head">
-          <h2>{view() === "months" ? "Money in and out by month" : "Where the money went"}</h2>
-          <Show when={selected()}>
-            <button class="btn btn-sm" onClick={() => setSelected("")}>
-              Clear {selectedName()}
-            </button>
-          </Show>
-          <div class="chip-row" role="group" aria-label="Chart">
-            <button
-              class="chip"
-              aria-pressed={view() !== "months"}
-              onClick={() => setView("pie")}
-            >
-              By category
-            </button>
-            <button
-              class="chip"
-              aria-pressed={view() === "months"}
-              onClick={() => setView("months")}
-            >
-              By month
-            </button>
+          <div class="head-stats">
+            <span class="stat">
+              <span class="label">Income</span>
+              <span class="value">{formatMoney(summary().inCents)}</span>
+            </span>
+            <span class="stat">
+              <span class="label">Net</span>
+              <span
+                class="value"
+                style={{ color: summary().netCents < 0 ? "var(--critical)" : "var(--good)" }}
+              >
+                {formatMoney(summary().netCents)}
+              </span>
+            </span>
+            <Show when={selectedName()}>
+              <span class="pill">{selectedName()}</span>
+            </Show>
           </div>
-          <button
-            class="btn btn-sm"
-            aria-pressed={showTable()}
-            onClick={() => setTableParam(showTable() ? "" : "1")}
-          >
-            {showTable() ? "Chart" : "Table"}
-          </button>
+          <div class="chip-row" role="group" aria-label="View">
+            <For each={VIEWS}>
+              {([id, label]) => (
+                <button class="chip" aria-pressed={view() === id} onClick={() => setView(id)}>
+                  {label}
+                </button>
+              )}
+            </For>
+          </div>
         </div>
-        <p class="card-sub">
-          <Show
-            when={view() === "months"}
-            fallback={
-              <>
-                Spending only, largest first — refunds net against their category. Select a
-                category to filter the transactions below.
-              </>
-            }
-          >
-            Every month in the period, including quiet ones.
-          </Show>{" "}
-          Transfers between your own accounts are excluded, so a card payment isn't
-          counted twice.
-        </p>
 
         <Switch>
-          <Match when={view() === "months" && months().length === 0}>
-            <p class="muted">No transactions in this period.</p>
+          <Match when={view() === "trend" && trend()?.length}>
+            <CategoryTrend data={trend()!} label={selectedName()} />
           </Match>
-          <Match when={view() === "months" && showTable()}>
-            <MonthTable data={months()} />
-          </Match>
-          <Match when={view() === "months"}>
+          <Match when={view() === "trend" && !selectedIds() && months().length > 0}>
             <MonthlyFlowChart data={months()} />
           </Match>
-          <Match when={categoryTotals().length === 0}>
-            <p class="muted">No spending in this period.</p>
+          <Match when={view() === "breakdown" && trend()?.length}>
+            <MonthTable data={trend()!} spendOnly />
           </Match>
-          <Match when={showTable()}>
+          <Match when={view() === "breakdown" && !selectedIds() && categoryTotals().length > 0}>
             <CategoryTable data={categoryTotals()} />
+          </Match>
+          <Match when={view() !== "category" || categoryTotals().length === 0}>
+            <p class="muted">Nothing to show for this period.</p>
           </Match>
           <Match when={true}>
             <SpendingDonut
@@ -284,49 +286,12 @@ export function Overview() {
                   </Show>
                 ),
               }}
-              stats={[
-                { label: "Income", value: formatMoney(summary().inCents) },
-                {
-                  label: "Net",
-                  value: formatMoney(summary().netCents),
-                  tone: summary().netCents < 0 ? "critical" : "good",
-                },
-              ]}
             />
           </Match>
         </Switch>
-
-        <Show when={view() === "months" && !showTable() && trend() && trend()!.length > 0}>
-          <div
-            style={{
-              "margin-top": "20px",
-              "border-top": "1px solid var(--border)",
-              "padding-top": "16px",
-            }}
-          >
-            <div class="card-head">
-              <h3>{selectedName()} by month</h3>
-            </div>
-            <CategoryTrend data={trend()!} label={selectedName()} />
-          </div>
-        </Show>
       </div>
 
       <div class="card" id="transactions">
-        <div class="card-head">
-          <h2>
-            Transactions
-            <Show when={selectedName()}>
-              {" "}
-              <span class="pill">{selectedName()}</span>
-            </Show>
-          </h2>
-          <Show when={selected()}>
-            <button class="btn btn-sm" onClick={() => setSelected("")}>
-              Show all categories
-            </button>
-          </Show>
-        </div>
         <TransactionList
           period={period()}
           accountIds={filter().accountIds}

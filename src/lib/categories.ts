@@ -11,6 +11,16 @@ import type { Category, Rule, Transaction } from "./types";
 export const UNCATEGORIZED = "uncategorized";
 
 /**
+ * The category that takes one transaction out of the reckoning entirely — no
+ * report counts it and the list leaves it out until you ask to see it.
+ *
+ * It exists for the rows a rule can never get right: a reimbursed work expense,
+ * a duplicate a bank posted twice, a card payment the seed rules missed. Nothing
+ * is deleted, so the raw record and the hidden pill are both still there.
+ */
+export const HIDDEN = "hidden";
+
+/**
  * `spending` and `income` are summarised separately. `transfer` is excluded
  * from both: moving money from checking to a credit card isn't an expense, and
  * counting it would double-count the purchases that card already recorded.
@@ -38,6 +48,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: "other", name: "Other", group: "spending" },
   { id: "income", name: "Income", group: "income" },
   { id: "transfer", name: "Transfer & Payment", group: "transfer" },
+  { id: HIDDEN, name: "Hidden", group: "hidden" },
   { id: UNCATEGORIZED, name: "Uncategorized", group: "spending" },
 ];
 
