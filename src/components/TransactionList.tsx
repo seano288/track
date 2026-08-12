@@ -3,8 +3,8 @@
  *
  * Period, account, and category come in as props — the Overview's filter row and
  * the donut own those, so they aren't duplicated here. What is local to the list
- * (the search, direction, sort order, whether transfers show) still round-trips
- * through the URL.
+ * (the search, sort order, whether transfers show) still round-trips through the
+ * URL.
  *
  * Rows render in pages rather than all at once — a few years of statements is
  * tens of thousands of rows, and mounting them all would stall the page.
@@ -44,7 +44,6 @@ export function TransactionList(props: {
   const { state, actions, accountName } = useApp();
 
   const [query, setQuery] = urlParam("q", "");
-  const [direction, setDirection] = urlParam("dir", "all");
   const [sortKey, setSortKey] = urlParam("sort", "date");
   const [sortDir, setSortDir] = urlParam("asc", "");
   const [showAside, setShowAside] = urlParam("aside", "");
@@ -63,7 +62,6 @@ export function TransactionList(props: {
     period: props.period,
     accountIds: props.accountIds,
     categoryIds: props.categoryIds,
-    direction: direction() as "all" | "out" | "in",
     query: query(),
     // Search reads the labels the row displays, not just the payee.
     categories: state.categories,
@@ -75,14 +73,6 @@ export function TransactionList(props: {
       ...baseFilter(),
       excludeGroups: showingAside() ? undefined : SET_ASIDE,
     }),
-  );
-
-  /**
-   * How many rows the default view is holding back. Shown next to the count so
-   * the list never quietly disagrees with the total above it.
-   */
-  const asideCount = createMemo(() =>
-    showingAside() ? 0 : applyFilter(state.transactions, baseFilter()).length - filtered().length,
   );
 
   /** Which category is which kind, for the pill that explains an unusual row. */
@@ -147,45 +137,22 @@ export function TransactionList(props: {
           }}
           aria-label="Search transactions"
         />
-        <div class="chip-row" role="group" aria-label="Direction">
-          <For
-            each={
-              [
-                ["all", "All"],
-                ["out", "Money out"],
-                ["in", "Money in"],
-              ] as const
-            }
-          >
-            {([value, label]) => (
-              <button
-                class="chip"
-                aria-pressed={direction() === value}
-                onClick={() => setDirection(value)}
-              >
-                {label}
-              </button>
-            )}
-          </For>
-        </div>
-        {/* Without the rule this toggle reads as a fourth direction, and it isn't
-            one — the three above are exclusive, this one is independent. */}
-        <span class="divider" aria-hidden="true" />
-        <div class="chip-row">
-          {/* Off by default: transfers and hidden rows are money you've already
-              accounted for, or chosen to ignore. */}
-          <button
-            class="chip"
-            aria-pressed={showingAside()}
-            onClick={() => setShowAside(showingAside() ? "" : "1")}
-          >
-            Transfers &amp; hidden
-          </button>
-        </div>
+        {/* Off by default: transfers and hidden rows are money you've already
+            accounted for, or chosen to ignore. Kept quiet since it's rarely used. */}
+        <label class="switch">
+          <input
+            type="checkbox"
+            checked={showingAside()}
+            onChange={(event) => setShowAside(event.currentTarget.checked ? "1" : "")}
+          />
+          <span class="switch-track">
+            <span class="switch-thumb" />
+          </span>
+          Show hidden
+        </label>
         <span class="spacer" style={{ "font-size": "12.5px", color: "var(--text-secondary)" }}>
           <strong style={{ color: "var(--text-primary)" }}>{filtered().length}</strong>{" "}
           transaction{filtered().length === 1 ? "" : "s"}
-          <Show when={asideCount() > 0}> · {asideCount()} set aside</Show>
         </span>
       </div>
 

@@ -209,7 +209,7 @@ export function Overview() {
             {uncategorizedCount() === 1 ? "" : "s"}
           </span>
           <button class="btn btn-sm" onClick={showUncategorized}>
-            Categorise
+            Go fix it
           </button>
         </div>
       </Show>
